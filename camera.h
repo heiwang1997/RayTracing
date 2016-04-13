@@ -15,8 +15,11 @@ class Camera
     double window_h;
     double window_w;
     Ray world_position;
+
+    Vector3 dx;
+    Vector3 dy;
 public:
-    Ray emit(double sx, double sy);
+    Ray emit(double wx, double wy); // based on window pos
     Camera();
     ~Camera() {}
 };

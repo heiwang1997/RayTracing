@@ -11,8 +11,11 @@ public:
     friend Vector3 operator* (double, Vector3);
     // operator = and copy construction uses default.
     Vector3 getNormal() const;
+    Vector3 cross(const Vector3&) const;
+    Vector3 rotate(const Vector3& axis, double angle) const;
     double getLength() const;
     void dump() const;
+    Vector3 getVertical() const;
     Vector3();
     Vector3(double nx, double ny, double nz);
     ~Vector3() {}
