@@ -234,3 +234,11 @@ _Pvt_Extensions
 
 # FAKE - F# Make
 .fake/
+
+.idea/
+bin/
+Debug/
+CMakeLists.txt
+*.props
+*.vcxproj
+*.filters
