@@ -10,6 +10,7 @@
 
 class Camera
 {
+private:
     int img_h;
     int img_w;
     double window_h;
@@ -19,7 +20,11 @@ class Camera
     Vector3 dx;
     Vector3 dy;
 public:
-    Ray emit(double wx, double wy); // based on window pos
+    int getImgW() const;
+    int getImgH() const;
+    double getWindowW() const;
+    double getWindowH() const;
+    Ray emit(double sx, double sy);
     Camera();
     ~Camera() {}
 };

@@ -2,6 +2,9 @@
 #include <cmath>
 #include <cstdio>
 
+const double DOZ = 1e-6;
+const double PI  = 3.1415926f;
+
 Vector3 Vector3::operator+ (const Vector3& rv) const {
     return Vector3(x + rv.x, y + rv.y, z + rv.z);
 }
@@ -45,10 +48,7 @@ Vector3::Vector3(double nx, double ny, double nz) {
 }
 
 Vector3 Vector3::getVertical() const {
-    if (z == 0)
-        return Vector3(0, 0, 1);
-    else
-        return Vector3(1, 0, - x / z);
+    return (x == 0 && y == 0) ? Vector3(1, 0, 0) : Vector3(y, -x, 0);
 }
 
 Vector3 Vector3::cross(const Vector3 &rv) const {

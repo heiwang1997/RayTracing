@@ -1,5 +1,8 @@
 #pragma once
 
+extern const double DOZ;
+extern const double PI;
+
 class Vector3
 {
 public:
