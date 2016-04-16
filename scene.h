@@ -3,14 +3,14 @@
 #include <vector>
 
 class Primitive;
+class Light;
 class Ray;
 
 class Scene
 {
     std::vector<Primitive*> m_primitives;
+    std::vector<Light*> m_lights;
 public:
-    int getPrimitiveNumber() const { return m_primitives.size(); }
-    Primitive* getPrimitive(int idx) const { return m_primitives[idx]; }
     Primitive* getNearestPrimitive(const Ray&);
     Scene();
     ~Scene();
