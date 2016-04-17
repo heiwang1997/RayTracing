@@ -5,6 +5,16 @@
 const double DOZ = 1e-6;
 const double PI  = 3.1415926f;
 
+template <class T>
+T max(const T& a, const T& b) {
+    return (a > b) ? a : b;
+}
+
+template <class T>
+T min(const T& a, const T& b) {
+    return (a < b) ? a : b;
+}
+
 Vector3 Vector3::operator+ (const Vector3& rv) const {
     return Vector3(x + rv.x, y + rv.y, z + rv.z);
 }
@@ -73,6 +83,9 @@ Vector3 Vector3::rotate(const Vector3 &axis, double angle) const {
     return ret;
 }
 
+Vector3 Vector3::operator-() const {
+    return Vector3(- x, - y, - z);
+}
 
 void Color::dump() const {
     printf("Color( R=%lf, G=%lf, B=%lf )\n", r, g, b);
@@ -84,6 +97,40 @@ Color::Color() {
 
 Color::Color(double nr, double ng, double nb) {
     r = nr; g = ng; b = nb;
+    confine();
+}
+
+Color Color::confine() {
+    r = max(min(r, 255 - DOZ), DOZ);
+    g = max(min(g, 255 - DOZ), DOZ);
+    b = max(min(b, 255 - DOZ), DOZ);
+    return *this;
+}
+
+Color Color::operator+(const Color &rv) const {
+    return Color(r + rv.r, g + rv.g, b + rv.b).confine();
+}
+
+Color Color::operator+=(const Color &rv) {
+    r = r + rv.r;
+    g = g + rv.g;
+    b = b + rv.b;
+    confine();
+    return *this;
+}
+
+Color Color::operator*(double ratio) const {
+    return Color(ratio * r, ratio * g, ratio * b).confine();
+}
+
+Color Color::operator*(const Color &rv) const {
+    return Color(r * rv.r / 255.0,
+                 g * rv.g / 255.0,
+                 b * rv.b / 255.0).confine();
+}
+
+Color operator*(double ratio, Color col) {
+    return (col * ratio).confine();
 }
 
 Ray::Ray() : source(Vector3(0, 0, 0)), direction(Vector3(1, 0, 0)) {

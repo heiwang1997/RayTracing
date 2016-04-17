@@ -1,4 +1,5 @@
 #include "primitive.h"
+#include "default.h"
 #include <cmath>
 
 Primitive::Primitive(void) {
@@ -37,3 +38,39 @@ bool Plane::updateCollision(const Ray& ray) {
     } else
         return false;
 }
+
+Material::Material() {
+    shineness = DEFAULT_MATERIAL_SHINENESS;
+    diffuse = DEFAULT_MATERIAL_DIFFUSE;
+    specular = DEFAULT_MATERIAL_SPECULAR;
+    origin_color = Color(128, 128, 128);
+}
+
+double Material::getShineness() const {
+    return shineness;
+}
+
+void Material::setShineness(double shineness) {
+    Material::shineness = shineness;
+}
+
+double Material::getDiffuse() const {
+    return diffuse;
+}
+
+void Material::setDiffuse(double diffuse) {
+    Material::diffuse = diffuse;
+}
+
+double Material::getSpecular() const {
+    return specular;
+}
+
+void Material::setSpecular(double specular) {
+    Material::specular = specular;
+}
+
+Color Material::getColor() const {
+    return origin_color;
+}
+

@@ -9,6 +9,7 @@ public:
     double x, y, z;
     Vector3 operator+ (const Vector3&) const;
     Vector3 operator- (const Vector3&) const;
+    Vector3 operator- () const;
     double operator* (const Vector3&) const;
     Vector3 operator* (double) const;
     friend Vector3 operator* (double, Vector3);
@@ -37,10 +38,16 @@ public:
 
 class Color
 {
+    Color confine();
 public:
     double r, g, b;
     // operator = and copy construction uses default.
     void dump() const;
+    Color operator + (const Color&) const;
+    Color operator += (const Color&);
+    Color operator * (double) const;
+    Color operator * (const Color&) const;
+    friend Color operator* (double, Color);
     Color();
     Color(double nr, double ng, double nb);
     ~Color() {}

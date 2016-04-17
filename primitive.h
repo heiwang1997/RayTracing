@@ -11,10 +11,32 @@ struct Collision
     ~Collision() {}
 };
 
+class Material
+{
+    double shineness;
+    double diffuse;
+    double specular;
+    Color origin_color;
+
+public:
+
+    double getShineness() const;
+    void setShineness(double shineness);
+    double getDiffuse() const;
+    void setDiffuse(double diffuse);
+    double getSpecular() const;
+    void setSpecular(double specular);
+    Color getColor() const;
+
+    Material();
+    ~Material() {}
+};
+
 class Primitive
 {
 public:
     Collision collision;
+    Material material;
     virtual bool updateCollision(const Ray&) = 0;
     Primitive();
     virtual ~Primitive();

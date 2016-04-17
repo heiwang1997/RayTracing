@@ -17,6 +17,7 @@ class RealtimeImgWriter : public ImgWriter
     cv::Mat canvas;
 public:
     void cache(int x, int y, const Color& col);
+    void show() const;
     RealtimeImgWriter(int w, int h);
     ~RealtimeImgWriter() {}
 };

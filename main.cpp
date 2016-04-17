@@ -6,10 +6,11 @@ using namespace std;
 using namespace cv;
 
 int main( int argc, const char* argv[] ) {
-    ImgWriter *realimg = new RealtimeImgWriter(400, 300);
+    RealtimeImgWriter *realimg = new RealtimeImgWriter(800, 550);
     RayTracer engine;
     engine.setImgWriter(realimg);
     engine.run();
+    realimg->show();
     waitKey();
     delete realimg;
     return 0;
