@@ -1,0 +1,41 @@
+Camera: {
+
+}
+
+Scene: {
+
+	Light: {
+		position: 0.1 -1 2
+		color: 255 255 255
+	}
+
+	Light: {
+		position: 3 -1 1
+		color: 255 255 255
+	}
+
+	Sphere: {
+		name: "Left Ball"
+		position: 0.2 0.5 0.7
+		radius: 0.7
+		material: {
+			color: 0 0 255
+		}
+	}
+
+	Sphere: {
+		name: "Right Ball"
+		position: 1.8 0.5 0.7
+		radius: 0.7
+		material: {
+			color: 255 0 0
+		}
+	}
+
+	Plane: {
+		name: "Ground"
+		normal: 0 0 1
+		offset: 0
+	}
+
+}

@@ -9,6 +9,7 @@ int main( int argc, const char* argv[] ) {
     RealtimeImgWriter *realimg = new RealtimeImgWriter(800, 550);
     RayTracer engine;
     engine.setImgWriter(realimg);
+    engine.loadSceneFromFile("scene1.txt");
     engine.run();
     realimg->show();
     waitKey();

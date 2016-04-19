@@ -1,6 +1,6 @@
 #include "basic.h"
 #include <cmath>
-#include <cstdio>
+#include <cctype>
 
 const double DOZ = 1e-6;
 const double PI  = 3.1415926f;
@@ -87,6 +87,13 @@ Vector3 Vector3::operator-() const {
     return Vector3(- x, - y, - z);
 }
 
+void Vector3::loadAttr(FILE *fp) {
+    x = getAttrDouble(fp);
+    y = getAttrDouble(fp);
+    z = getAttrDouble(fp);
+}
+
+
 void Color::dump() const {
     printf("Color( R=%lf, G=%lf, B=%lf )\n", r, g, b);
 }
@@ -133,6 +140,13 @@ Color operator*(double ratio, Color col) {
     return (col * ratio).confine();
 }
 
+void Color::loadAttr(FILE *fp) {
+    r = getAttrDouble(fp);
+    g = getAttrDouble(fp);
+    b = getAttrDouble(fp);
+}
+
+
 Ray::Ray() : source(Vector3(0, 0, 0)), direction(Vector3(1, 0, 0)) {
 
 }
@@ -146,6 +160,37 @@ void Ray::dump() {
     printf(" & direct = ( %lf, %lf, %lf)\n",
            direction.x, direction.y, direction.z);
 }
+
+std::string getAttrName(FILE *fp) {
+    char attr_res[20];
+    char probe;
+    fscanf_s(fp, "%*[^a-zA-Z}]");
+    if (feof(fp)) return "EOF";
+    fscanf_s(fp, "%c", &probe);
+    if (probe == '}') return "END";
+    fseek(fp, -1, SEEK_CUR);
+    fscanf_s(fp, "%[^:]", attr_res);
+    fscanf_s(fp, "%*[:{ ]");
+    for (int i = 0; i < 20 && attr_res[i] != 0; ++ i)
+        attr_res[i] = (char)toupper(attr_res[i]);
+    return std::string(attr_res);
+}
+
+std::string getAttrString(FILE *fp) {
+    char result[100];
+    fscanf_s(fp, "\"%[^\"]\"", result);
+    return std::string(result);
+}
+
+double getAttrDouble(FILE *fp) {
+    double result;
+    fscanf_s(fp, "%lf", &result);
+    return result;
+}
+
+
+
+
 
 
 

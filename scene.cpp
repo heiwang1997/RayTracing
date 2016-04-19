@@ -1,16 +1,8 @@
 #include "scene.h"
-#include "basic.h"
 #include "primitive.h"
 #include "light.h"
 
 Scene::Scene() {
-    Sphere* ball1 = new Sphere(Vector3(0.5, 0.5, 0.5), 0.5);
-    Plane* p1 = new Plane(Vector3(0, 0, 1), 0.0f);
-    m_primitives.push_back(ball1);
-    m_primitives.push_back(new Sphere(Vector3(0.5, 1, 0.5), 0.3));
-    m_primitives.push_back(p1);
-    Light* light1 = new Light(Vector3(-2, -5, 4));
-    m_lights.push_back(light1);
 }
 
 Scene::~Scene() {
@@ -31,3 +23,31 @@ Primitive *Scene::getNearestPrimitive(const Ray &m_ray) {
     }
     return result;
 }
+
+void Scene::loadAttr(FILE *fp) {
+    std::string attr;
+    while (true) {
+        attr = getAttrName(fp);
+        if (attr == "END") break;
+        if (attr == "LIGHT") {
+            Light* lt = new Light(Vector3());
+            lt->loadAttr(fp);
+            m_lights.push_back(lt);
+            continue;
+        }
+        if (attr == "SPHERE") {
+            Sphere* sp = new Sphere("DummySphere", Vector3(), 1);
+            sp->loadAttr(fp);
+            m_primitives.push_back(sp);
+            continue;
+        }
+        if (attr == "PLANE") {
+            Plane* pl = new Plane("DummyPlane", Vector3(), 1);
+            pl->loadAttr(fp);
+            m_primitives.push_back(pl);
+            continue;
+        }
+    }
+}
+
+

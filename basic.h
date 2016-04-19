@@ -1,7 +1,13 @@
 #pragma once
 
+#include <cstdio>
+#include <string>
 extern const double DOZ;
 extern const double PI;
+
+std::string getAttrName(FILE*);
+std::string getAttrString(FILE*);
+double getAttrDouble(FILE*);
 
 class Vector3
 {
@@ -19,6 +25,7 @@ public:
     Vector3 rotate(const Vector3& axis, double angle) const;
     double getLength() const;
     void dump() const;
+    void loadAttr(FILE*);
     Vector3 getVertical() const;
     Vector3();
     Vector3(double nx, double ny, double nz);
@@ -50,6 +57,7 @@ public:
     friend Color operator* (double, Color);
     Color();
     Color(double nr, double ng, double nb);
+    void loadAttr(FILE*);
     ~Color() {}
 };
 

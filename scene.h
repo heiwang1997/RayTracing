@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include "basic.h"
 
 class Primitive;
 class Light;
@@ -14,6 +15,7 @@ public:
     Primitive* getNearestPrimitive(const Ray&);
     int getLightsNumber() const { return m_lights.size(); }
     Light* getLightById(int idx) const { return m_lights[idx]; }
+    void loadAttr(FILE*);
     Scene();
     ~Scene();
 };

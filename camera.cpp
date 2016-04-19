@@ -38,5 +38,15 @@ double Camera::getWindowH() const {
     return window_h;
 }
 
+void Camera::loadAttr(FILE *fp) {
+    std::string attr;
+    while (true) {
+        attr = getAttrName(fp);
+        if (attr == "END") break;
+    }
+}
+
+
+
 
 
