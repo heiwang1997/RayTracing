@@ -4,6 +4,7 @@
 
 const double DOZ = 1e-6;
 const double PI  = 3.1415926f;
+const double INF = 1e30;
 
 template <class T>
 T max(const T& a, const T& b) {
@@ -93,6 +94,17 @@ void Vector3::loadAttr(FILE *fp) {
     z = getAttrDouble(fp);
 }
 
+double &Vector3::operator[](int idx) {
+    if (idx == 0) return x;
+    if (idx == 1) return y;
+    return z;
+}
+
+double Vector3::getAttr(int idx) const {
+    if (idx == 0) return x;
+    if (idx == 1) return y;
+    return z;
+}
 
 void Color::dump() const {
     printf("Color( R=%lf, G=%lf, B=%lf )\n", r, g, b);
@@ -160,6 +172,11 @@ void Ray::dump() {
     printf(" & direct = ( %lf, %lf, %lf)\n",
            direction.x, direction.y, direction.z);
 }
+
+Ray Ray::getNormal() const {
+    return Ray(source, direction.getNormal());
+}
+
 
 std::string getAttrName(FILE *fp) {
     char attr_res[20];

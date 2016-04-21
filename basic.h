@@ -4,6 +4,7 @@
 #include <string>
 extern const double DOZ;
 extern const double PI;
+extern const double INF;
 
 std::string getAttrName(FILE*);
 std::string getAttrString(FILE*);
@@ -18,6 +19,8 @@ public:
     Vector3 operator- () const;
     double operator* (const Vector3&) const;
     Vector3 operator* (double) const;
+    double& operator[] (int);
+    double getAttr(int) const;
     friend Vector3 operator* (double, Vector3);
     // operator = and copy construction uses default.
     Vector3 getNormal() const;
@@ -38,6 +41,7 @@ public:
     Vector3 source;
     Vector3 direction;
     void dump();
+    Ray getNormal() const;
     Ray();
     Ray(const Vector3& src, const Vector3& dir);
     ~Ray() {}

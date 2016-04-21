@@ -1,8 +1,10 @@
 #include "scene.h"
+#include "default.h"
 #include "primitive.h"
 #include "light.h"
 
 Scene::Scene() {
+    bg_color = DEFAULT_SCENE_BACKGROUND_COLOR;
 }
 
 Scene::~Scene() {
@@ -14,10 +16,11 @@ Scene::~Scene() {
 }
 
 Primitive *Scene::getNearestPrimitive(const Ray &m_ray) {
-    Primitive* result = 0;
+    Primitive* result = 0; Ray t_ray = m_ray.getNormal();
     for (std::vector<Primitive*>::iterator it = m_primitives.begin();
          it != m_primitives.end(); ++ it) {
-        bool this_collide = (*it)->updateCollision(m_ray);
+        // updateCollision must be passed with a normalized ray.
+        bool this_collide = (*it)->updateCollision(t_ray);
         if (this_collide && (result == 0 || (*it)->collision.distance < result->collision.distance))
             result = (*it);
     }
@@ -47,7 +50,20 @@ void Scene::loadAttr(FILE *fp) {
             m_primitives.push_back(pl);
             continue;
         }
+        if (attr == "OBJECT") {
+            Object* obj = new Object();
+            obj->loadAttr(fp);
+            printf("LOadFinish!\n");
+            m_primitives.push_back(obj);
+            continue;
+        }
     }
 }
+
+Color Scene::getBackgroundColor() const {
+    return bg_color;
+}
+
+
 
 

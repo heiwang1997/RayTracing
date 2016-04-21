@@ -12,8 +12,8 @@ class RayTracer {
     Camera* camera;
     Scene* scene;
     ImgWriter* img;
-    Color getBasicPhongColor(Primitive*, const Ray&);
-    Color traceRay(const Ray&);
+    Color getBasicPhongColor(Primitive*, const Ray&, const Vector3&, const Vector3&);
+    Color traceRay(const Ray&, int depth);
 public:
     void loadSceneFromFile(const std::string &file_name);
     void run();

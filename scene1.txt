@@ -5,7 +5,7 @@ Camera: {
 Scene: {
 
 	Light: {
-		position: 0.1 -1 2
+		position: 0.1 -1 4
 		color: 255 255 255
 	}
 
@@ -16,19 +16,30 @@ Scene: {
 
 	Sphere: {
 		name: "Left Ball"
-		position: 0.2 0.5 0.7
-		radius: 0.7
+		position: 0.6 0.5 0.5
+		radius: 0.5
 		material: {
 			color: 0 0 255
+			reflection: 0
 		}
 	}
 
 	Sphere: {
 		name: "Right Ball"
-		position: 1.8 0.5 0.7
-		radius: 0.7
+		position: 1.8 0.5 0.5
+		radius: 0.5
 		material: {
 			color: 255 0 0
+		}
+	}
+
+	Sphere: {
+		name: "Right Ball"
+		position: 1.2 0 0.1
+		radius: 0.1
+		material: {
+			color: 123 23 0
+			reflection: 0
 		}
 	}
 
@@ -36,6 +47,26 @@ Scene: {
 		name: "Ground"
 		normal: 0 0 1
 		offset: 0
+		material: {
+			color: 0 255 0
+			reflection: 0
+		}
 	}
+
+	Plane: {
+		name: "Ground"
+		normal: 0 -1 0
+		offset: 1
+		material: {
+			color: 0 255 0
+			reflection: 0
+		}
+	}
+	
+	Object: {
+		file: "./sphere.obj"
+	}
+
+
 
 }
