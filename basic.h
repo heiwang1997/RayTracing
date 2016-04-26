@@ -5,10 +5,15 @@
 extern const double DOZ;
 extern const double PI;
 extern const double INF;
+extern int dsx;
+extern int dsy;
 
 std::string getAttrName(FILE*);
 std::string getAttrString(FILE*);
 double getAttrDouble(FILE*);
+int getAttrInt(FILE*);
+
+class Color;
 
 class Vector3
 {
@@ -31,6 +36,7 @@ public:
     void loadAttr(FILE*);
     Vector3 getVertical() const;
     Vector3();
+    Vector3(const Color&);
     Vector3(double nx, double ny, double nz);
     ~Vector3() {}
 };
@@ -40,7 +46,7 @@ class Ray
 public:
     Vector3 source;
     Vector3 direction;
-    void dump();
+    void dump() const;
     Ray getNormal() const;
     Ray();
     Ray(const Vector3& src, const Vector3& dir);

@@ -1,45 +1,72 @@
 Camera: {
-
+	width: 1024
+	height: 768
+	position: 1.0 -7 0.7
+	direction: 0 1 0
 }
 
 Scene: {
 
+	LightSample: 8
+
 	Light: {
-		position: 0.1 -1 4
+		position: 1.0 0.2 3.08
 		color: 255 255 255
+		size: 1.0
 	}
 
 	Light: {
-		position: 3 -1 1
+		position: 1.0 0.2 3.08
 		color: 255 255 255
+		size: 1.0
 	}
 
 	Sphere: {
 		name: "Left Ball"
-		position: 0.6 0.5 0.5
-		radius: 0.5
+		position: 0.2 0.2 0.7
+		radius: 0.7
 		material: {
-			color: 0 0 255
-			reflection: 0
+			color: 128 128 255
+			reflection: 0.3
+			diffuseReflection: 0.5
 		}
 	}
 
 	Sphere: {
 		name: "Right Ball"
-		position: 1.8 0.5 0.5
-		radius: 0.5
+		position: 1.8 0.5 0.7
+		radius: 0.7
 		material: {
-			color: 255 0 0
+			color: 128 255 255
+			reflection: 0.3
 		}
 	}
 
 	Sphere: {
-		name: "Right Ball"
-		position: 1.2 0 0.1
-		radius: 0.1
+		name: "2nd Refrative ball"
+		position: 1.4 -1.4 0.2
+		radius: 0.2
 		material: {
-			color: 123 23 0
-			reflection: 0
+			color: 0 255 255
+			refraction: 1.0
+			diffusion: 0
+			density: 1.0
+			ambient: 0
+			rindex: 1.3
+		}
+	}
+
+	Sphere: {
+		name: "1st Refrative ball"
+		position: 1.7 -1.8 0.2
+		radius: 0.2
+		material: {
+			color: 0 0 0
+			refraction: 1.0
+			diffusion: 0
+			density: 1.0
+			ambient: 0
+			rindex: 1.3
 		}
 	}
 
@@ -48,25 +75,46 @@ Scene: {
 		normal: 0 0 1
 		offset: 0
 		material: {
-			color: 0 255 0
+			reflection: 0.3
+		}
+	}
+
+	Plane: {
+		name: "Back Wall"
+		normal: 0 -1 0
+		offset: 1.2
+		material: {
 			reflection: 0
 		}
 	}
 
 	Plane: {
-		name: "Ground"
-		normal: 0 -1 0
-		offset: 1
+		name: "Ceiling"
+		normal: 0 0 -1
+		offset: 3.09
 		material: {
-			color: 0 255 0
+			reflection: 0
+			specular: 0
+			color: 0 0 0
+		}
+	}
+
+	Plane: {
+		name: "LW"
+		normal: 1 0 0
+		offset: 2
+		material: {
 			reflection: 0
 		}
 	}
-	
-	Object: {
-		file: "./sphere.obj"
+
+	Plane: {
+		name: "RW"
+		normal: -1 0 0
+		offset: 4
+		material: {
+			reflection: 0
+		}
 	}
-
-
 
 }

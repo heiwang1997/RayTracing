@@ -13,20 +13,32 @@ Primitive::~Primitive() {
 }
 
 bool Sphere::updateCollision(const Ray& ray) {
-    Vector3 L = pos - ray.source;
-    double l = L.getLength();
-    if (l > radius) { // Camera is outside the ball
-        double tp = L * ray.direction;
-        if (tp < DOZ) return false;
-        double d2 = l * l - tp * tp;
-        double tpp = radius * radius - d2;
-        if (tpp < DOZ) return false; tpp = sqrt(tpp);
-        this->collision.distance = tp - tpp;
-        this->collision.pos = ray.source + (this->collision.distance) * ray.direction;
-        this->collision.normal = this->collision.pos - pos;
-        return true;
-    } else  // TODO: handle this situation
+
+    Vector3 P = ray.source - pos;
+    double b = -P * ray.direction;
+    double det = b * b - P.getLength() * P.getLength() + radius * radius;
+
+    if ( det > DOZ ) {
+        det = sqrt( det );
+        double x1 = b - det  , x2 = b + det;
+
+        if ( x2 < DOZ ) return false;
+        if ( x1 > DOZ ) {
+            this->collision.distance = x1;
+            this->collision.hit_type = Collision::OUTSIDE;
+        } else {
+            this->collision.distance = x2;
+            this->collision.hit_type = Collision::INSIDE;
+        }
+    } else
         return false;
+
+    this->collision.pos = ray.source + (this->collision.distance) * ray.direction;
+    this->collision.normal = this->collision.pos - pos;
+    if ( this->collision.hit_type == Collision::INSIDE )
+        this->collision.normal = -this->collision.normal;
+
+    return true;
 
 }
 
@@ -73,10 +85,23 @@ Material::Material() {
     specular = DEFAULT_MATERIAL_SPECULAR;
     reflection = DEFAULT_MATERIAL_REFLECTION;
     origin_color = DEFAULT_MATERIAL_COLOR;
+    refraction = DEFAULT_MATERIAL_REFRACTION;
+    rindex = DEFAULT_MATERIAL_RINDEX;
+    ambient = DEFAULT_MATERIAL_AMBIENT;
+    density = DEFAULT_MATERIAL_DENSITY;
+    diffuse_reflection = DEFAULT_MATERIAL_DEFUSE_REFLECTION;
 }
 
 double Material::getShineness() const {
     return shineness;
+}
+
+double Material::getDensity() const {
+    return density;
+}
+
+double Material::getAmbient() const {
+    return ambient;
 }
 
 double Material::getDiffuse() const {
@@ -99,7 +124,12 @@ void Material::loadAttr(FILE *fp) {
         if (attr == "COLOR") origin_color.loadAttr(fp);
         else if (attr == "DIFFUSION") diffuse = getAttrDouble(fp);
         else if (attr == "SPECULAR") specular = getAttrDouble(fp);
+        else if (attr == "AMBIENT") ambient = getAttrDouble(fp);
         else if (attr == "REFLECTION") reflection = getAttrDouble(fp);
+        else if (attr == "REFRACTION") refraction = getAttrDouble(fp);
+        else if (attr == "RINDEX") rindex = getAttrDouble(fp);
+        else if (attr == "DENSITY") density = getAttrDouble(fp);
+        else if (attr == "DIFFUSEREFLECTION") diffuse_reflection = getAttrDouble(fp);
     }
 }
 
@@ -172,7 +202,10 @@ void Object::loadAttr(FILE *fp) {
 }
 
 bool Object::updateCollision(const Ray &ray) {
-    return false;
+    Triangle* col_tri = triangle_tree->updateCollision(ray);
+    if (col_tri == 0) return false;
+    collision = col_tri->collision;
+    return true;
 }
 
 // implementation simplified.
@@ -214,9 +247,9 @@ void Object::loadMeshFile(const std::string &file_name) {
                     int f1, f2, f3;
                     if (fscanf_s(fp, "%d %d %d", &f1, &f2, &f3) == 3) {
                         Triangle* new_tri = new Triangle;
-                        new_tri->vertex[0] = vecVertices[f1 - 1];
-                        new_tri->vertex[1] = vecVertices[f2 - 1];
-                        new_tri->vertex[2] = vecVertices[f3 - 1];
+                        new_tri->vertex[0] = vecVertices[f1 - 1] * 0.2;
+                        new_tri->vertex[1] = vecVertices[f2 - 1] * 0.2;
+                        new_tri->vertex[2] = vecVertices[f3 - 1] * 0.2;
                         new_tri->updateAccelerator();
                         vecTriangles.push_back(new_tri);
                     }
@@ -248,4 +281,15 @@ Object::~Object() {
 }
 
 
+double Material::getRefraction() const {
+    return refraction;
+}
+
+double Material::getRindex() const {
+    return rindex;
+}
+
+double Material::getDiffuseReflection() const {
+    return diffuse_reflection;
+}
 

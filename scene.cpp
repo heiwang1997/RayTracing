@@ -5,6 +5,8 @@
 
 Scene::Scene() {
     bg_color = DEFAULT_SCENE_BACKGROUND_COLOR;
+    light_sample = DEFAULT_SCENE_LIGHT_SAMPLE;
+    diffuse_reflection_sample = DEFAULT_SCENE_DIFFUSE_REFLECTION_SAMPLE;
 }
 
 Scene::~Scene() {
@@ -19,6 +21,18 @@ Primitive *Scene::getNearestPrimitive(const Ray &m_ray) {
     Primitive* result = 0; Ray t_ray = m_ray.getNormal();
     for (std::vector<Primitive*>::iterator it = m_primitives.begin();
          it != m_primitives.end(); ++ it) {
+        // updateCollision must be passed with a normalized ray.
+        bool this_collide = (*it)->updateCollision(t_ray);
+        if (this_collide && (result == 0 || (*it)->collision.distance < result->collision.distance))
+            result = (*it);
+    }
+    return result;
+}
+
+Light *Scene::getNearestLight(const Ray &m_ray) {
+    Light* result = 0; Ray t_ray = m_ray.getNormal();
+    for (std::vector<Light*>::iterator it = m_lights.begin();
+         it != m_lights.end(); ++ it) {
         // updateCollision must be passed with a normalized ray.
         bool this_collide = (*it)->updateCollision(t_ray);
         if (this_collide && (result == 0 || (*it)->collision.distance < result->collision.distance))
@@ -57,11 +71,39 @@ void Scene::loadAttr(FILE *fp) {
             m_primitives.push_back(obj);
             continue;
         }
+        if (attr == "LIGHTSAMPLE") {
+            light_sample = getAttrInt(fp);
+            continue;
+        }
+        if (attr == "DIFFUSEREFLECTIONSAMPLE") {
+            diffuse_reflection_sample = getAttrInt(fp);
+            continue;
+        }
     }
 }
 
 Color Scene::getBackgroundColor() const {
     return bg_color;
+}
+
+bool Scene::interceptTest(const Ray &m_ray, double t_dist) {
+    Ray t_ray = m_ray.getNormal();
+    for (std::vector<Primitive*>::iterator it = m_primitives.begin();
+         it != m_primitives.end(); ++ it) {
+        // updateCollision must be passed with a normalized ray.
+        bool this_collide = (*it)->updateCollision(t_ray);
+        if (this_collide && (*it)->collision.distance < t_dist) return true;
+    }
+    return false;
+}
+
+
+int Scene::getLightSample() const {
+    return light_sample;
+}
+
+int Scene::getDiffuseReflectionSample() const {
+    return diffuse_reflection_sample;
 }
 
 

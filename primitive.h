@@ -19,14 +19,25 @@ class Material
     double diffuse;
     double specular;
     double reflection;
+    double refraction;
+    double diffuse_reflection;
+    double ambient;
+    double density;
+    double rindex;
     Color origin_color;
 
 public:
 
+    double getDiffuseReflection() const;
     double getShineness() const;
     double getDiffuse() const;
     double getSpecular() const;
     double getReflection() const;
+    double getRefraction() const;
+    double getRindex() const;
+    double getAmbient() const;
+    double getDensity() const;
+
     Color getColor() const;
     void loadAttr(FILE*);
     Material();
@@ -53,6 +64,7 @@ protected:
 public:
     virtual bool updateCollision(const Ray&);
     void loadAttr(FILE*);
+    std::string getName() const { return m_name; }
     Sphere(const std::string & t_name, const Vector3& m_pos, double m_radius)
         : pos(m_pos), radius(m_radius), m_name(t_name) {}
     ~Sphere() {}
@@ -68,6 +80,7 @@ public:
 
     virtual bool updateCollision(const Ray &ray);
     void loadAttr(FILE*);
+    std::string getName() const { return m_name; }
     Plane(const std::string & t_name, const Vector3 &t_norm, double t_d)
             : norm(t_norm), d(t_d), m_name(t_name) { }
     ~Plane() {}

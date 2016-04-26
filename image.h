@@ -3,6 +3,8 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+static const char* wnd_name = "Render Result";
+
 class ImgWriter
 {
 public:

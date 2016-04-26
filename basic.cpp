@@ -5,6 +5,7 @@
 const double DOZ = 1e-6;
 const double PI  = 3.1415926f;
 const double INF = 1e30;
+int dsx, dsy;
 
 template <class T>
 T max(const T& a, const T& b) {
@@ -106,6 +107,10 @@ double Vector3::getAttr(int idx) const {
     return z;
 }
 
+Vector3::Vector3(const Color& col) {
+    x = col.r; y = col.g; z = col.b;
+}
+
 void Color::dump() const {
     printf("Color( R=%lf, G=%lf, B=%lf )\n", r, g, b);
 }
@@ -166,7 +171,7 @@ Ray::Ray() : source(Vector3(0, 0, 0)), direction(Vector3(1, 0, 0)) {
 Ray::Ray(const Vector3 &src, const Vector3 &dir)
   : source(src), direction(dir) { }
 
-void Ray::dump() {
+void Ray::dump() const {
     printf("Ray( sx=%lf, sy=%lf, sz=%lf )\n",
            source.x, source.y, source.z);
     printf(" & direct = ( %lf, %lf, %lf)\n",
@@ -202,6 +207,12 @@ std::string getAttrString(FILE *fp) {
 double getAttrDouble(FILE *fp) {
     double result;
     fscanf_s(fp, "%lf", &result);
+    return result;
+}
+
+int getAttrInt(FILE* fp) {
+    int result;
+    fscanf_s(fp, "%d", &result);
     return result;
 }
 

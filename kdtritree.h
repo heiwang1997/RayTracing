@@ -9,10 +9,13 @@ class TriBoundingBox {
 public:
     Vector3 min;
     Vector3 max;
+    double collision_distance;
     void updateBox(Triangle*);
     void dump() const;
     double getSize(int) const;
     double getArea() const;
+    bool updateCollision(const Ray&);
+    bool inside(const Vector3&) const;
     TriBoundingBox() : min(INF, INF, INF), max(-INF, -INF, -INF) {}
     ~TriBoundingBox() {}
 };
@@ -31,20 +34,13 @@ public:
     ~KDTriNode();
 };
 
-class TriComparer {
-public:
-    enum CmpCoord {X = 0, Y, Z} cmpCoord;
-    enum CmpBase {MAX = 0, MIN} cmpBase;
-    bool operator() (const Triangle* a, const Triangle* b) const;
-};
-
 class KDTriTree {
     KDTriNode* root;
-    TriComparer triCmp;
+    Triangle* traverseNode(KDTriNode*, const Ray&);
 public:
     void buildTree(const std::vector<Triangle*>& tri_data);
     void divideNode(KDTriNode*, int);
-    void sortNode(KDTriNode*);
+    Triangle* updateCollision(const Ray&);
     KDTriTree();
     ~KDTriTree();
 };

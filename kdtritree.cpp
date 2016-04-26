@@ -1,13 +1,17 @@
 #include "kdtritree.h"
-#include <algorithm>
-
-#include <iostream>
-using namespace std;
 
 // Constant for surface-area-heuristic Algorithm.
 static const double SAH_TRAVERSE_COST = 0.3f;
 static const double SAH_INTERCEPT_COST = 1.0f;
 static const int SAH_SAMPLE_NUM = 8;
+
+double max3(double a, double b, double c) {
+    return std::max(std::max(a, b), c);
+}
+
+double min3(double a, double b, double c) {
+    return std::min(std::min(a, b), c);
+}
 
 KDTriNode::KDTriNode() {
     data = 0;
@@ -18,7 +22,9 @@ KDTriNode::KDTriNode() {
 }
 
 KDTriNode::~KDTriNode() {
-
+    if (size != 0 && data) delete[] data;
+    delete left;
+    delete right;
 }
 
 
@@ -27,123 +33,135 @@ KDTriTree::KDTriTree() : root(0) {
 }
 
 KDTriTree::~KDTriTree() {
-
-}
-
-void KDTriTree::sortNode(KDTriNode *node) {
-    std::sort(node->data, node->data + node->size, triCmp);
+    if (root)
+        for (int i = 0; i < root->size; ++ i)
+            delete root->data[i];
+    delete root;
 }
 
 // ATTENTION: This SAH is not standardized.
 // The best coordinates is an approximation.
 void KDTriTree::divideNode(KDTriNode *node, int depth) {
-    // TODO: stop condition.
-    //printf("LEVEL=%d\n", depth);
-    if (node->size <= 4 || depth == 0) return;
-    //printf("CSIZE=%d\n", node->size);
+//    if (node == 0 || node->size <= 4 || depth == 0) return;
+//    // Judge best axis to split.
+//    int split_axis;
+//    double sx = node->aabb.getSize(0), sy = node->aabb.getSize(1),
+//            sz = node->aabb.getSize(2);
+//    if (sx > sz && sx > sy) split_axis = 0;
+//    else if (sy > sx && sy > sz) split_axis = 1;
+//    else split_axis = 2;
+//
+//    // Judge best plane to split.
+//    double best_cost = INF;
+//    double best_plane = 0;
+//    double all_area_coef = 1.0f / node->aabb.getArea();
+//    int best_left_size = 0, best_right_size = 0;
+//    TriBoundingBox left_box = node->aabb;
+//    TriBoundingBox right_box = node->aabb;
+//
+//    // Make a list of splitting planes.
+//    int split_count = node->size * SAH_SAMPLE_NUM / 1024 + 1;
+//    double split_step = node->aabb.getSize(split_axis) / split_count;
+//    double current_plane = 0.0f;
+//    while (split_count --) {
+//        int left_size = 0, right_size = 0;
+//        left_box.max[split_axis] = right_box.min[split_axis] = current_plane;
+//        for (int i = 0; i < node->size; ++ i) {
+//            if (node->data[i]->getMinPos(split_axis) < current_plane + DOZ)
+//                ++ left_size;
+//            if (node->data[i]->getMaxPos(split_axis) > current_plane - DOZ)
+//                ++ right_size;
+//        }
+//        double current_cost = SAH_TRAVERSE_COST + SAH_INTERCEPT_COST * all_area_coef *
+//                    (left_size * left_box.getArea() + right_size * right_box.getArea());
+//        if (current_cost < best_cost) {
+//            best_cost = current_cost;
+//            best_plane = current_plane;
+//            best_left_size = left_size;
+//            best_right_size = right_size;
+//        }
+//        current_plane += split_step;
+//    }
+//
+//    // the cost for not splitting
+//    double lazy_cost = SAH_INTERCEPT_COST * node->size;
+//    if (lazy_cost < best_cost) return;
+//
+//    // Start Splitting.
+//    node->plane = best_plane; node->type = (KDTriNode::SplitType) split_axis;
+//    left_box.max[split_axis] = right_box.min[split_axis] = best_plane;
+//
+//    if (best_left_size > 0) {
+//        node->left = new KDTriNode;
+//        node->left->size = best_left_size;
+//        node->left->data = new Triangle *[best_left_size];
+//        node->left->aabb = left_box;
+//    }
+//
+//    if (best_right_size > 0) {
+//        node->right = new KDTriNode;
+//        node->right->size = best_right_size;
+//        node->right->data = new Triangle *[best_right_size];
+//        node->right->aabb = right_box;
+//    }
+//
+//    int lc = 0, rc = 0;
+//    for (int i = 0; i < node->size; ++ i) {
+//        if (node->data[i]->getMinPos(split_axis) < best_plane + DOZ)
+//            node->left->data[lc ++] = node->data[i];
+//        if (node->data[i]->getMaxPos(split_axis) > best_plane - DOZ)
+//            node->right->data[rc ++] = node->data[i];
+//    }
+//    printf("Left Size = %d, Right Size = %d, Depth = %d, Best Plane = %lf, Axis = %d\n",
+//           best_left_size, best_right_size, depth, best_plane);
+//    divideNode(node->left, depth - 1);
+//    divideNode(node->right, depth - 1);
+
+    if (node == 0 || node->size <= 64 || depth == 0) return;
     // Judge best axis to split.
-    int split_axis;
-    double sx = node->aabb.getSize(0), sy = node->aabb.getSize(1),
-           sz = node->aabb.getSize(2);
-    if (sx > sz && sx > sy) split_axis = TriComparer::X;
-    else if (sy > sx && sy > sz) split_axis = TriComparer::Y;
-    else split_axis = TriComparer::Z;
-    triCmp.cmpCoord = (TriComparer::CmpCoord) split_axis;
+    int split_axis = (8 - depth) % 3;
 
     // Judge best plane to split.
-    double best_cost = INF;
-    double best_plane = 0;
-    double all_area_coef = 1.0f / node->aabb.getArea();
+    double best_plane = node->aabb.min[split_axis] + node->aabb.getSize(split_axis) / 2;
     TriBoundingBox left_box = node->aabb;
     TriBoundingBox right_box = node->aabb;
-    int left_size = 0, right_size = 0;
-    // Consider plane is the min coord of all triangles.
-    triCmp.cmpBase = TriComparer::MIN;
-    sortNode(node);
-    int j = 0; // j is the number of tris which cannot be in the right. (mono increase)
-    for (int i = 0; i < node->size; ++ i) { // i is the size of left node
-        double current_plane = node->data[i]->getMinPos(split_axis);
-        while (i + 1 < node->size &&
-                std::abs(node->data[i + 1]->getMinPos(split_axis) - current_plane) < DOZ)
-            ++ i;
-        double current_cost = 0;
-        left_box.max[split_axis] = current_plane;
-        right_box.min[split_axis] = current_plane;
-        while (j < node->size && node->data[j]->getMaxPos(split_axis) <= current_plane + DOZ) ++ j;
-        // ASSERT: (node->size - j) is the size of right node.
-        //printf("CurrentSituation:\n");
-        //node->aabb.dump();
-        //left_box.dump(); right_box.dump();
-        current_cost = SAH_TRAVERSE_COST + SAH_INTERCEPT_COST * all_area_coef *
-                       ((i + 1) * left_box.getArea() + (node->size - j) * right_box.getArea());
-        //printf("cc=%lf,i=%d,j=%d\n", current_cost, i, j);
-        if (current_cost < best_cost) {
-            best_cost = current_cost;
-            best_plane = current_plane;
-            left_size = i + 1; right_size = node->size - j;
-        }
-    }
-    printf("BC is cal by: leftSize=%d, rightSize=%d, bestPlane=%lf\n", left_size, right_size, best_plane);
-    // OR the bst plane is the max coord of all triangles.
-    triCmp.cmpBase = TriComparer::MAX;
-    sortNode(node);
-    j = 0;
-    for (int i = 0; i < node->size; ++ i) { // here i is the left node (complete).
-        double current_plane = node->data[i]->getMaxPos(split_axis);
-        while (i + 1 < node->size &&
-               std::abs(node->data[i + 1]->getMaxPos(split_axis) - current_plane) < DOZ)
-            ++ i;
-        double current_cost = 0;
-        left_box.max[split_axis] = current_plane;
-        right_box.min[split_axis] = current_plane;
-        while (j < node->size && node->data[j]->getMinPos(split_axis) <= current_plane + DOZ) ++ j;
-        current_cost = SAH_TRAVERSE_COST + SAH_INTERCEPT_COST * all_area_coef *
-                       (j * left_box.getArea() + (node->size - (i + 1)) * right_box.getArea());
-        if (current_cost < best_cost) {
-            best_cost = current_cost;
-            best_plane = current_plane;
-            left_size = j; right_size = node->size - (i + 1);
-            //printf("SURPISIE!\n");
-        }
-    }
-    // the cost for not splitting
-    double lazy_cost = SAH_INTERCEPT_COST * node->size;
-    printf("BC is cal by: leftSize=%d, rightSize=%d, bestPlane=%lf\n", left_size, right_size, best_plane);
-    //printf("bestCost=%lf, lazyCost=%lf\n", best_cost, lazy_cost);
-
-    if (lazy_cost < best_cost) return;
-
-    // Begin splitting.
     node->plane = best_plane; node->type = (KDTriNode::SplitType) split_axis;
-    printf("BEFORE:ls=%d,rs=%d\n", left_size, right_size);
-    int ordis = right_size;
-    left_size = 0; right_size = 0;
+    left_box.max[split_axis] = right_box.min[split_axis] = best_plane;
+
+    int left_size = 0, right_size = 0;
     for (int i = 0; i < node->size; ++ i) {
-        if (node->data[i]->getMinPos(split_axis) <= best_plane - DOZ)
+        if (node->data[i]->getMinPos(split_axis) < best_plane + DOZ)
             ++ left_size;
-        if (node->data[i]->getMaxPos(split_axis) >= best_plane + DOZ)
+        if (node->data[i]->getMaxPos(split_axis) > best_plane - DOZ)
             ++ right_size;
     }
-    if (right_size != ordis) printf("SHIT!");
 
-    printf("AFTER:ls=%d,rs=%d\n", left_size, right_size);
-    left_box.max[split_axis] = right_box.min[split_axis] = best_plane;
-    node->left = new KDTriNode; node->left->size = left_size;
-    node->left->data = new Triangle*[left_size];
-    node->left->aabb = left_box;
-    node->right = new KDTriNode; node->right->size = right_size;
-    node->right->data = new Triangle*[right_size];
-    node->right->aabb = right_box;
+    if (left_size > 0) {
+        node->left = new KDTriNode;
+        node->left->size = left_size;
+        node->left->data = new Triangle *[left_size];
+        node->left->aabb = left_box;
+    }
+
+    if (right_size > 0) {
+        node->right = new KDTriNode;
+        node->right->size = right_size;
+        node->right->data = new Triangle *[right_size];
+        node->right->aabb = right_box;
+    }
 
     int lc = 0, rc = 0;
     for (int i = 0; i < node->size; ++ i) {
-        if (node->data[i]->getMinPos(split_axis) <= best_plane + DOZ)
+        if (node->data[i]->getMinPos(split_axis) < best_plane + DOZ)
             node->left->data[lc ++] = node->data[i];
-        if (node->data[i]->getMaxPos(split_axis) >= best_plane + DOZ)
+        if (node->data[i]->getMaxPos(split_axis) > best_plane - DOZ)
             node->right->data[rc ++] = node->data[i];
     }
+
+    //printf("Left Size = %d, Right Size = %d\n", left_size, right_size);
     divideNode(node->left, depth - 1);
     divideNode(node->right, depth - 1);
+
 }
 
 void KDTriTree::buildTree(const std::vector<Triangle *> &tri_data) {
@@ -156,8 +174,51 @@ void KDTriTree::buildTree(const std::vector<Triangle *> &tri_data) {
         root->data[i ++] = *it;
         root->aabb.updateBox(*it);
     }
-    divideNode(root, 20);
+    divideNode(root, 8);
 }
+
+Triangle *KDTriTree::updateCollision(const Ray &c_ray) {
+    return traverseNode(root, c_ray);
+}
+
+Triangle *KDTriTree::traverseNode(KDTriNode *node, const Ray &c_ray) {
+
+    if (node == 0) return 0;
+    double lt = INF, rt = INF;
+    bool is_leaf = true;
+    if (node->left) {
+        node->left->aabb.updateCollision(c_ray);
+        lt = node->left->aabb.collision_distance;
+        is_leaf = false;
+    }
+    if (node->right) {
+        node->right->aabb.updateCollision(c_ray);
+        rt = node->right->aabb.collision_distance;
+        is_leaf = false;
+    }
+    if (is_leaf) {
+        Triangle* result = 0;
+        for (int i = 0; i < node->size; ++ i) {
+            Triangle* test = node->data[i];
+            bool this_collide = test->updateCollision(c_ray);
+            if (this_collide &&
+                (result == 0 || test->collision.distance < result->collision.distance))
+                result = test;
+        }
+        return result;
+    }
+    Triangle* nearest_tri = 0;
+    if (lt < rt) {
+        nearest_tri = traverseNode(node->left, c_ray);
+        if (nearest_tri != 0) return nearest_tri;
+        return traverseNode(node->right, c_ray);
+    } else {
+        nearest_tri = traverseNode(node->right, c_ray);
+        if (nearest_tri != 0) return nearest_tri;
+        return traverseNode(node->left, c_ray);
+    }
+}
+
 
 void TriBoundingBox::updateBox(Triangle *tri) {
     for (int i = 0; i < 3; ++ i) {
@@ -175,16 +236,40 @@ double TriBoundingBox::getArea() const {
     return 2 * (d[0] * d[1] + d[1] * d[2] + d[2] * d[0]);
 }
 
-
-bool TriComparer::operator()(const Triangle *a, const Triangle *b) const {
-    if (cmpBase == MAX) return a->getMaxPos((int)cmpCoord) < b->getMaxPos((int)cmpCoord);
-    else return a->getMinPos((int)cmpCoord) < b->getMinPos((int)cmpCoord);
-}
-
 void TriBoundingBox::dump() const {
     printf("Box (\n");
     min.dump();
     max.dump();
     printf(")\n");
 }
+
+bool TriBoundingBox::updateCollision(const Ray &c_ray) {
+    // if inside, dist = -1, so that a test will sure be made.
+    if (inside(c_ray.source)) {
+        collision_distance = -1;
+        return true;
+    }
+    double near[3];
+    double far[3];
+    for (int i = 0; i < 3; ++ i) {
+        double t1 = (min[i] - c_ray.source.getAttr(i)) / c_ray.direction.getAttr(i);
+        double t2 = (max[i] - c_ray.source.getAttr(i)) / c_ray.direction.getAttr(i);
+        near[i] = std::min(t1, t2); far[i] = std::max(t1, t2);
+    }
+    double tmin = max3(near[0], near[1], near[2]),
+           tmax = min3(far[0], far[1], far[2]);
+    if (tmin > tmax) return false;
+    collision_distance = tmin;
+    return true;
+}
+
+bool TriBoundingBox::inside(const Vector3 &v) const {
+    return (v.getAttr(0) < max.getAttr(0) && v.getAttr(0) > min.getAttr(0)) &&
+           (v.getAttr(1) < max.getAttr(1) && v.getAttr(1) > min.getAttr(1)) &&
+           (v.getAttr(2) < max.getAttr(2) && v.getAttr(2) > min.getAttr(2));
+}
+
+
+
+
 

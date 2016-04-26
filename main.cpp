@@ -1,15 +1,17 @@
 #include <iostream>
 #include "raytracer.h"
-#include "imgwriter.h"
+#include "image.h"
+#include "camera.h"
 #include <opencv2/highgui/highgui.hpp>
 using namespace std;
 using namespace cv;
 
 int main( int argc, const char* argv[] ) {
-    RealtimeImgWriter *realimg = new RealtimeImgWriter(800, 570);
     RayTracer engine;
-    engine.setImgWriter(realimg);
     engine.loadSceneFromFile("scene1.txt");
+    RealtimeImgWriter *realimg = new RealtimeImgWriter(engine.getCamera()->getImgW(),
+                                                       engine.getCamera()->getImgH());
+    engine.setImgWriter(realimg);
     engine.run();
     realimg->show();
     waitKey();

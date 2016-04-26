@@ -43,6 +43,10 @@ void Camera::loadAttr(FILE *fp) {
     while (true) {
         attr = getAttrName(fp);
         if (attr == "END") break;
+        if (attr == "POSITION") world_position.source.loadAttr(fp);
+        else if (attr == "DIRECTION") world_position.direction.loadAttr(fp);
+        else if (attr == "HEIGHT") img_h = getAttrInt(fp);
+        else if (attr == "WIDTH") img_w = getAttrInt(fp);
     }
 }
 
