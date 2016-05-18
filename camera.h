@@ -26,6 +26,7 @@ public:
     double getWindowH() const;
     void loadAttr(FILE*);
     Ray emit(double sx, double sy);
+    Ray emitDOF(const Ray&);
     Camera();
     ~Camera() {}
 };

@@ -7,6 +7,7 @@ Scene::Scene() {
     bg_color = DEFAULT_SCENE_BACKGROUND_COLOR;
     light_sample = DEFAULT_SCENE_LIGHT_SAMPLE;
     diffuse_reflection_sample = DEFAULT_SCENE_DIFFUSE_REFLECTION_SAMPLE;
+    soft_shadow = DEFAULT_SCENE_SOFT_SHADOW;
 }
 
 Scene::~Scene() {
@@ -17,26 +18,32 @@ Scene::~Scene() {
     m_primitives.clear();
 }
 
-Primitive *Scene::getNearestPrimitive(const Ray &m_ray) {
-    Primitive* result = 0; Ray t_ray = m_ray.getNormal();
+PrimitiveCollision Scene::getNearestPrimitiveCollision(const Ray &m_ray, double max_dist) {
+    PrimitiveCollision result;
+    Ray t_ray = m_ray.getNormal();
     for (std::vector<Primitive*>::iterator it = m_primitives.begin();
          it != m_primitives.end(); ++ it) {
         // updateCollision must be passed with a normalized ray.
-        bool this_collide = (*it)->updateCollision(t_ray);
-        if (this_collide && (result == 0 || (*it)->collision.distance < result->collision.distance))
-            result = (*it);
+        Collision pcol = (*it)->updateCollision(t_ray, max_dist);
+        if (pcol.collide() && (!result.collide() || result.collision.distance > pcol.distance)) {
+            result.primitive = (*it);
+            result.collision = pcol;
+        }
     }
     return result;
 }
 
-Light *Scene::getNearestLight(const Ray &m_ray) {
-    Light* result = 0; Ray t_ray = m_ray.getNormal();
+LightCollision Scene::getNearestLightCollision(const Ray &m_ray, double max_dist) {
+    LightCollision result;
+    Ray t_ray = m_ray.getNormal();
     for (std::vector<Light*>::iterator it = m_lights.begin();
          it != m_lights.end(); ++ it) {
         // updateCollision must be passed with a normalized ray.
-        bool this_collide = (*it)->updateCollision(t_ray);
-        if (this_collide && (result == 0 || (*it)->collision.distance < result->collision.distance))
-            result = (*it);
+        Collision lcol = (*it)->updateCollision(t_ray, max_dist);
+        if (lcol.collide() && (!result.collide() || result.collision.distance > lcol.distance)) {
+            result.light = (*it);
+            result.collision = lcol;
+        }
     }
     return result;
 }
@@ -67,7 +74,7 @@ void Scene::loadAttr(FILE *fp) {
         if (attr == "OBJECT") {
             Object* obj = new Object();
             obj->loadAttr(fp);
-            printf("LOadFinish!\n");
+            printf("LoadFinish!\n");
             m_primitives.push_back(obj);
             continue;
         }
@@ -91,8 +98,8 @@ bool Scene::interceptTest(const Ray &m_ray, double t_dist) {
     for (std::vector<Primitive*>::iterator it = m_primitives.begin();
          it != m_primitives.end(); ++ it) {
         // updateCollision must be passed with a normalized ray.
-        bool this_collide = (*it)->updateCollision(t_ray);
-        if (this_collide && (*it)->collision.distance < t_dist) return true;
+        if ((*it)->updateCollision(t_ray, t_dist).collide())
+            return true;
     }
     return false;
 }
@@ -105,6 +112,12 @@ int Scene::getLightSample() const {
 int Scene::getDiffuseReflectionSample() const {
     return diffuse_reflection_sample;
 }
+
+bool Scene::getSoftShadow() const {
+    return soft_shadow;
+}
+
+
 
 
 

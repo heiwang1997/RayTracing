@@ -8,6 +8,18 @@ Ray Camera::emit(double sx, double sy) {
                world_position.direction + dx * (wx - window_w / 2) + dy * (wy - window_h / 2));
 }
 
+Ray Camera::emitDOF(const Ray& ori_ray) {
+    Vector3 focal_point = ori_ray.source + ori_ray.direction * 3; // focal distance
+    Vector3 image_point = ori_ray.source + ori_ray.direction;
+    double offx, offy;
+    do {
+        offx = random01() * 2 - 1;
+        offy = random01() * 2 - 1;
+    } while (offx * offx + offy * offy > 1);
+    Vector3 dof_emit_point = image_point + dx * offx * 0.1 + dy * offy * 0.1;
+    return Ray(dof_emit_point, focal_point - dof_emit_point);
+}
+
 Camera::Camera() {
     img_h = DEFAULT_CAMERA_IMG_H;
     img_w = DEFAULT_CAMERA_IMG_W;
@@ -49,6 +61,9 @@ void Camera::loadAttr(FILE *fp) {
         else if (attr == "WIDTH") img_w = getAttrInt(fp);
     }
 }
+
+
+
 
 
 

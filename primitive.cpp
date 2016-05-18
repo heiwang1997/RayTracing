@@ -3,42 +3,117 @@
 #include "default.h"
 #include <cmath>
 #include <cstdlib>
-#include <vector>
+
+ImgLoader* Texture::imgLoader = 0;
+
+Texture::Texture() {
+    color_table = 0;
+    tex_h = 0;
+    tex_w = 0;
+    scale_x = DEFAULT_TEXTURE_SCALE_X;
+    scale_y = DEFAULT_TEXTURE_SCALE_Y;
+    offset_x = DEFAULT_TEXTURE_OFFSET_X;
+    offset_y = DEFAULT_TEXTURE_OFFSET_Y;
+}
+
+Texture::~Texture() {
+    if (color_table) {
+        for (int i = 0; i < tex_h; ++i)
+            delete[] color_table[i];
+        delete[] color_table;
+    }
+}
+
+// Might be time-consuming...
+Color Texture::getColor(double x, double y) const {
+    int lux = ((int(floor(x)) % tex_w) + tex_w) % tex_w;
+    int luy = ((int(floor(y)) % tex_h) + tex_h) % tex_h;
+    int rux = (lux + 1) % tex_w, ruy = luy;
+    int ldx = lux, ldy = (luy + 1) % tex_h;
+    int rdx = (lux + 1) % tex_w, rdy = (luy + 1) % tex_h;
+
+    double ofx = x - floor(x), ofy = y - floor(y);
+    Color lu = color_table[luy][lux],
+          ld = color_table[ldy][ldx],
+          ru = color_table[ruy][rux],
+          rd = color_table[rdy][rdx];
+
+    return lu * ((1 - ofx) * (1 - ofy)) + ld * ((1 - ofx) * ofy) +
+           ru * (ofx * (1 - ofy)) + rd * (ofx * ofy);
+}
+
+void Texture::loadAttr(FILE *fp) {
+    std::string attr;
+    while (true) {
+        attr = getAttrName(fp);
+        if (attr == "END") break;
+        if (attr == "NAME") loadFile(getAttrString(fp).data());
+        else if (attr == "OFFSETX") offset_x = getAttrDouble(fp);
+        else if (attr == "OFFSETY") offset_y = getAttrDouble(fp);
+        else if (attr == "SCALEX") scale_x = getAttrDouble(fp);
+        else if (attr == "SCALEY") scale_y = getAttrDouble(fp);
+    }
+}
+
+void Texture::loadFile(const char *file_name) {
+    imgLoader->load(file_name);
+    tex_h = imgLoader->getHeight();
+    tex_w = imgLoader->getWidth();
+    if (tex_h != 0) color_table = new Color*[tex_h];
+    for (int i = 0; i < tex_h; ++ i) {
+        color_table[i] = new Color[tex_w];
+        for (int j = 0; j < tex_w; ++ j)
+            color_table[i][j] = imgLoader->getColor(j, i);
+    }
+}
+
 
 Primitive::Primitive() {
+    hash_code = rand();
 }
 
 Primitive::~Primitive() {
 
 }
 
-bool Sphere::updateCollision(const Ray& ray) {
+int Primitive::getHashCode() const {
+    return hash_code;
+}
+
+Color Primitive::getColor(const Vector3 &pos) const {
+    if (material.getTexture() == 0) return material.getColor();
+    Vector3 UV = getTextureUV(pos);
+    return material.getTexture()->getColor(UV.getAttr(0), UV.getAttr(1));
+}
+
+Collision Sphere::updateCollision(const Ray& ray, double max_dist) {
 
     Vector3 P = ray.source - pos;
     double b = -P * ray.direction;
     double det = b * b - P.getLength() * P.getLength() + radius * radius;
 
-    if ( det > DOZ ) {
-        det = sqrt( det );
-        double x1 = b - det  , x2 = b + det;
+    if ( det < DOZ ) return Collision();
+    det = sqrt( det );
+    double x1 = b - det  , x2 = b + det;
 
-        if ( x2 < DOZ ) return false;
-        if ( x1 > DOZ ) {
-            this->collision.distance = x1;
-            this->collision.hit_type = Collision::OUTSIDE;
-        } else {
-            this->collision.distance = x2;
-            this->collision.hit_type = Collision::INSIDE;
-        }
-    } else
-        return false;
+    if ( x2 < DOZ ) return Collision();
 
-    this->collision.pos = ray.source + (this->collision.distance) * ray.direction;
-    this->collision.normal = this->collision.pos - pos;
-    if ( this->collision.hit_type == Collision::INSIDE )
-        this->collision.normal = -this->collision.normal;
+    Collision result;
+    if ( x1 > DOZ ) {
+        result.distance = x1;
+        result.hit_type = Collision::OUTSIDE;
+    } else {
+        result.distance = x2;
+        result.hit_type = Collision::INSIDE;
+    }
+    if (result.distance > max_dist) return Collision();
 
-    return true;
+    result.pos = ray.source + (result.distance) * ray.direction;
+    result.normal = result.pos - pos;
+    if ( result.hit_type == Collision::INSIDE )
+        result.normal = -result.normal;
+
+    return result;
 
 }
 
@@ -55,15 +130,17 @@ void Sphere::loadAttr(FILE *fp) {
 }
 
 
-bool Plane::updateCollision(const Ray& ray) {
+Collision Plane::updateCollision(const Ray& ray, double max_dist) {
     double t = - (d + norm * ray.source) / (norm * ray.direction);
-    if (t > DOZ) {
-        this->collision.normal = norm;
-        this->collision.pos = ray.source + t * ray.direction;
-        this->collision.distance = t;
-        return true;
+    if (t > DOZ && t < max_dist) {
+        Collision result;
+        result.hit_type = Collision::OUTSIDE;
+        result.normal = norm;
+        result.pos = ray.source + t * ray.direction;
+        result.distance = t;
+        return result;
     } else
-        return false;
+        return Collision();
 }
 
 void Plane::loadAttr(FILE *fp) {
@@ -76,6 +153,7 @@ void Plane::loadAttr(FILE *fp) {
         else if (attr == "OFFSET") d = getAttrDouble(fp);
         else if (attr == "MATERIAL") material.loadAttr(fp);
     }
+    updateUV();
 }
 
 
@@ -90,6 +168,7 @@ Material::Material() {
     ambient = DEFAULT_MATERIAL_AMBIENT;
     density = DEFAULT_MATERIAL_DENSITY;
     diffuse_reflection = DEFAULT_MATERIAL_DEFUSE_REFLECTION;
+    texture = 0;
 }
 
 double Material::getShineness() const {
@@ -130,6 +209,8 @@ void Material::loadAttr(FILE *fp) {
         else if (attr == "RINDEX") rindex = getAttrDouble(fp);
         else if (attr == "DENSITY") density = getAttrDouble(fp);
         else if (attr == "DIFFUSEREFLECTION") diffuse_reflection = getAttrDouble(fp);
+        else if (attr == "TEXTURE") { texture = new Texture(); texture->loadAttr(fp); }
+        else if (attr == "ABSORBANCE") absorbance.loadAttr(fp);
     }
 }
 
@@ -137,7 +218,7 @@ double Material::getReflection() const {
     return reflection;
 }
 
-bool Triangle::updateCollision(const Ray &ray) {
+Collision Triangle::updateCollision(const Ray &ray, double max_dist) {
     const static int mods[5] = {0, 1, 2, 0, 1};
     int& k = acc.k;
     int ku = mods[k + 1];
@@ -145,27 +226,32 @@ bool Triangle::updateCollision(const Ray &ray) {
     Vector3 O = ray.source, D = ray.direction, A = vertex[0];
     const double lnd = 1.0f / (D[k] + acc.nu * D[ku] + acc.nv * D[kv]);
     const double t = (acc.nd - O[k] - acc.nu * O[ku] - acc.nv * O[kv]) * lnd;
-    if (t <= 0) return false;
+    if (!(t > 0 && t < max_dist)) return Collision();
     double hu = O[ku] + t * D[ku] - A[ku];
     double hv = O[kv] + t * D[kv] - A[kv];
     double beta = hv * acc.bnu + hu * acc.bnv;
-    if (beta < 0) return false;
+    if (beta < 0) return Collision();
     double gamma = hu * acc.cnu + hv * acc.cnv;
-    if (gamma < 0) return false;
-    if ((gamma + beta) > 1) return false;
+    if (gamma < 0) return Collision();
+    if ((gamma + beta) > 1) return Collision();
     // Hit the triangle:
-    collision.distance = t;
-    collision.normal = normal;
-    collision.pos = O + t * D; // Smooth Shading's position should be modified.
-    collision.hit_type = (D * normal > 0)?
-                         Collision::INSIDE : Collision::OUTSIDE;
-    return true;
+    Collision result;
+    result.distance = t;
+    result.normal = normal;
+    result.pos = O + t * D; // Smooth Shading's position should be modified.
+    if (D * normal > 0) {
+        result.hit_type = Collision::INSIDE;
+        result.normal = - normal;
+    } else {
+        result.hit_type = Collision::OUTSIDE;
+    }
+    return result;
 }
 
 void Triangle::updateAccelerator() {
     Vector3 c = vertex[1] - vertex[0];
     Vector3 b = vertex[2] - vertex[0];
-    normal = b.cross( c );
+    normal = c.cross( b );
     if (fabs( normal.x ) > fabs( normal.y ))
         if (fabs( normal.x ) > fabs( normal.z )) acc.k = 0; else acc.k = 2;
     else
@@ -194,18 +280,23 @@ void Triangle::updateAccelerator() {
 
 void Object::loadAttr(FILE *fp) {
     std::string attr;
+    std::string mesh_file_name;
     while (true) {
         attr = getAttrName(fp);
-        if (attr == "END") break;
-        if (attr == "FILE") loadMeshFile(getAttrString(fp));
+        if (attr == "END") {
+            loadMeshFile(mesh_file_name);
+            break;
+        }
+        if (attr == "FILE") mesh_file_name = getAttrString(fp);
+        if (attr == "SCALE") scale = getAttrDouble(fp);
+        if (attr == "ROTATION") rotation.loadAttr(fp);
+        if (attr == "POSITION") pos.loadAttr(fp);
+        if (attr == "MATERIAL") material.loadAttr(fp);
     }
 }
 
-bool Object::updateCollision(const Ray &ray) {
-    Triangle* col_tri = triangle_tree->updateCollision(ray);
-    if (col_tri == 0) return false;
-    collision = col_tri->collision;
-    return true;
+Collision Object::updateCollision(const Ray &ray, double max_dist) {
+    return triangle_tree->updateCollision(ray, max_dist);
 }
 
 // implementation simplified.
@@ -229,8 +320,12 @@ void Object::loadMeshFile(const std::string &file_name) {
             switch(buf[1]) {
             case '\0': {
                 Vector3 vP;
-                if(fscanf_s(fp, "%lf %lf %lf", &vP.x, &vP.y, &vP.z) == 3)
+                if(fscanf_s(fp, "%lf %lf %lf", &vP.x, &vP.y, &vP.z) == 3) {
+                    vP = vP.rotate(Vector3(1, 0, 0), rotation.getAttr(0)).
+                            rotate(Vector3(0, 1, 0), rotation.getAttr(1)).
+                            rotate(Vector3(0, 0, 1), rotation.getAttr(2)) * scale + pos;
                     vecVertices.push_back(vP);
+                }
                 else {
                     printf("Error while parsing vertex at Line %d\n", lineNumber);
                     return;
@@ -247,11 +342,12 @@ void Object::loadMeshFile(const std::string &file_name) {
                     int f1, f2, f3;
                     if (fscanf_s(fp, "%d %d %d", &f1, &f2, &f3) == 3) {
                         Triangle* new_tri = new Triangle;
-                        new_tri->vertex[0] = vecVertices[f1 - 1] * 0.2;
-                        new_tri->vertex[1] = vecVertices[f2 - 1] * 0.2;
-                        new_tri->vertex[2] = vecVertices[f3 - 1] * 0.2;
+                        new_tri->vertex[0] = vecVertices[f1 - 1];
+                        new_tri->vertex[1] = vecVertices[f2 - 1];
+                        new_tri->vertex[2] = vecVertices[f3 - 1];
                         new_tri->updateAccelerator();
                         vecTriangles.push_back(new_tri);
+                        new_tri->index = vecTriangles.size();
                     }
                     else {
                         printf("Error parsing faces at Line %d\n", lineNumber);
@@ -274,12 +370,14 @@ void Object::loadMeshFile(const std::string &file_name) {
 
 Object::Object() {
     triangle_tree = new KDTriTree;
+    pos = DEFAULT_MESH_POS;
+    rotation = DEFAULT_MESH_ROTATION;
+    scale = DEFAULT_MESH_SCALE;
 }
 
 Object::~Object() {
     delete triangle_tree;
 }
-
 
 double Material::getRefraction() const {
     return refraction;
@@ -293,3 +391,77 @@ double Material::getDiffuseReflection() const {
     return diffuse_reflection;
 }
 
+Material::~Material() {
+    if (texture) delete texture;
+}
+
+Texture *Material::getTexture() const {
+    return texture;
+}
+
+Color Material::getAbsorbance() const {
+    return absorbance;
+}
+
+
+Vector3 Plane::getTextureUV(const Vector3 &pos) const {
+    double u = pos * m_UAxis * material.getTexture()->getScaleX();
+    double v = pos * m_VAxis * material.getTexture()->getScaleY();
+    return Vector3(u + material.getTexture()->getOffsetX(),
+                   v + material.getTexture()->getOffsetY(), 0);
+}
+
+Vector3 Sphere::getTextureUV(const Vector3 &m_pos) const {
+    static const Vector3 VN = Vector3(0, 0, 1);
+    static const Vector3 VE = Vector3(1, 0, 0);
+    static const Vector3 VC = VN.cross(VE);
+    Vector3 VP = (m_pos - pos) * radius;
+    double phi = acos(- VP * VN);
+    double v = phi * material.getTexture()->getScaleY() * (1.0f / PI);
+    double theta = (acos(VP * VE / sin(phi))) * (0.5f / PI);
+    double u;
+    if (VC * VP >= 0)
+        u = (1.0f - theta) * material.getTexture()->getScaleX();
+    else
+        u = theta * material.getTexture()->getScaleX();
+    return Vector3(u + material.getTexture()->getOffsetX(),
+                   v + material.getTexture()->getOffsetY(), 0);
+}
+
+Vector3 Triangle::getTextureUV(const Vector3 &pos) const {
+    return Vector3();
+}
+
+Vector3 Object::getTextureUV(const Vector3 &pos) const {
+    return Vector3();
+}
+
+Sphere::Sphere(const std::string & t_name, const Vector3& m_pos, double m_radius)
+        : pos(m_pos), radius(m_radius), m_name(t_name) {
+}
+
+Plane::Plane(const std::string & t_name, const Vector3 &t_norm, double t_d)
+        : norm(t_norm), d(t_d), m_name(t_name) {
+    updateUV();
+}
+
+void Plane::updateUV() {
+    m_UAxis = Vector3(norm.y, norm.z, -norm.x).getNormal();
+    m_VAxis = m_UAxis.cross(norm).getNormal();
+}
+
+double Texture::getOffsetX() const {
+    return offset_x;
+}
+
+double Texture::getOffsetY() const {
+    return offset_y;
+}
+
+double Texture::getScaleX() const {
+    return scale_x;
+}
+
+double Texture::getScaleY() const {
+    return scale_y;
+}

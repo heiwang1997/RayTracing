@@ -11,6 +11,7 @@ Vector3 Light::getPos(int dx, int dy, int all) const {
 Light::Light(const Vector3 &t_pos) : pos(t_pos) {
     color = DEFAULT_LIGHT_COLOR;
     size = DEFAULT_LIGHT_SIZE;
+    hash_code = rand();
 }
 
 Color Light::getColor() const {
@@ -32,16 +33,23 @@ Vector3 Light::getPos() const {
     return pos;
 }
 
-bool Light::updateCollision(const Ray &c_ray) {
-    collision.distance = (pos.z - c_ray.source.z) / c_ray.direction.z;
-    if (collision.distance > DOZ) {
-        Vector3 collision_point = c_ray.source + collision.distance * c_ray.direction;
+Collision Light::updateCollision(const Ray &c_ray, double max_dist) {
+    Collision result;
+    result.distance = (pos.z - c_ray.source.z) / c_ray.direction.z;
+    if (result.distance > DOZ && result.distance < max_dist) {
+        Vector3 collision_point = c_ray.source + result.distance * c_ray.direction;
         if (collision_point.x > pos.x - size / 2 && collision_point.x < pos.x + size / 2 &&
             collision_point.y > pos.y - size / 2 && collision_point.y < pos.y + size / 2)
-            return true;
+            return result;
     }
-    return false;
+    return Collision();
 }
+
+int Light::getHashCode() const {
+    return hash_code;
+}
+
+
 
 
 

@@ -7,10 +7,10 @@ Camera: {
 
 Scene: {
 
-	LightSample: 0
+	LightSample: 4
 
 	Light: {
-		position: 1.0 0.5 3.08
+		position: 1.0 -0.5 3.08
 		color: 255 255 255
 		size: 1.0
 	}
@@ -18,12 +18,9 @@ Scene: {
 
 	Object: {
 		file: "dragon.obj"
-		rotation: 90 0 51
-		scale: 1.8
-		position: 0.4 1 0.6
-		material: {
-			color: 255 128 255
-		}
+		rotation: 90 0 0
+		scale: 1.5
+		position: 0.4 -0.5 1
 	}
 
 

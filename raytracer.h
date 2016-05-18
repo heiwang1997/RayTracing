@@ -3,6 +3,7 @@
 #include "basic.h"
 #include "primitive.h"
 #include "light.h"
+#include "image.h"
 #include <string>
 
 class Camera;
@@ -15,18 +16,21 @@ class RayTracer {
     Scene* scene;
     ImgWriter* img;
     Color getBasicPhongColor(Primitive*, const Collision&,
-                             const Vector3&, const Vector3&);
+                             const Vector3&, const Vector3&,
+                             int shade_sample);
     Color getReflectionColor(Primitive*, int,
-                             const Vector3&, const Collision&);
+                             const Vector3&, const Collision&, int& hash,
+                             int shade_sample);
     Color getRefractionColor(Primitive*, const Vector3&,
                              const Vector3&, const Collision&,
-                             int depth);
-    double getShadow(Primitive*, Light*);
-    Color traceRay(const Ray&, int depth);
+                             int depth, int& hash, int shade_sample);
+    double getShadow(Light*, int, const Vector3&);
+    Color traceRay(const Ray&, int depth, int& hash, int shade_sample);
 public:
     void loadSceneFromFile(const std::string &file_name);
     void run();
     void setImgWriter(ImgWriter*);
+    void setImgLoader(ImgLoader*);
     Camera * getCamera() const;
     RayTracer();
 

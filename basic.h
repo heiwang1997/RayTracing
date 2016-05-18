@@ -12,6 +12,8 @@ std::string getAttrName(FILE*);
 std::string getAttrString(FILE*);
 double getAttrDouble(FILE*);
 int getAttrInt(FILE*);
+double random01();
+void generateCommentlessFile(std::string);
 
 class Color;
 

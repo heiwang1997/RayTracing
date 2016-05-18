@@ -9,12 +9,11 @@ class TriBoundingBox {
 public:
     Vector3 min;
     Vector3 max;
-    double collision_distance;
     void updateBox(Triangle*);
     void dump() const;
     double getSize(int) const;
     double getArea() const;
-    bool updateCollision(const Ray&);
+    Collision updateCollision(const Ray&, double);
     bool inside(const Vector3&) const;
     TriBoundingBox() : min(INF, INF, INF), max(-INF, -INF, -INF) {}
     ~TriBoundingBox() {}
@@ -29,6 +28,7 @@ class KDTriNode {
     double plane;
     KDTriNode* left;
     KDTriNode* right;
+    void printInfo() const;
 public:
     KDTriNode();
     ~KDTriNode();
@@ -36,11 +36,11 @@ public:
 
 class KDTriTree {
     KDTriNode* root;
-    Triangle* traverseNode(KDTriNode*, const Ray&);
+    Collision traverseNode(KDTriNode*, const Ray&, double max_dist);
 public:
     void buildTree(const std::vector<Triangle*>& tri_data);
     void divideNode(KDTriNode*, int);
-    Triangle* updateCollision(const Ray&);
+    Collision updateCollision(const Ray&, double max_dist);
     KDTriTree();
     ~KDTriTree();
 };

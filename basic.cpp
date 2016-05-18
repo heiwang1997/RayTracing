@@ -1,6 +1,9 @@
 #include "basic.h"
 #include <cmath>
 #include <cctype>
+#include <cstdlib>
+#include <cstring>
+
 
 const double DOZ = 1e-6;
 const double PI  = 3.1415926f;
@@ -70,6 +73,7 @@ Vector3 Vector3::cross(const Vector3 &rv) const {
 }
 
 Vector3 Vector3::rotate(const Vector3 &axis, double angle) const {
+    if (fabs(angle) < DOZ) return Vector3(x, y, z);
     Vector3 ret;
     double cost = cos( angle );
     double sint = sin( angle );
@@ -216,10 +220,19 @@ int getAttrInt(FILE* fp) {
     return result;
 }
 
+void generateCommentlessFile(std::string file_name) {
+    FILE* fp, *fw;
+    fopen_s(&fp, file_name.data(), "r");
+    fopen_s(&fw, "temp_RayTracer.txt", "w");
+    char line_buf[10240];
+    while (fscanf_s(fp, "%[^/]", line_buf) != -1) {
+        fwrite(line_buf, sizeof(char) * strlen(line_buf), 1, fw);
+        fscanf_s(fp, "%*[^\n]");
+    }
+    fclose(fw);
+    fclose(fp);
+}
 
-
-
-
-
-
-
+double random01() {
+    return rand() / (double) RAND_MAX;
+}
