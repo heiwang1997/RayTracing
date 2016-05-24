@@ -1,0 +1,72 @@
+Camera: {
+	width: 1024
+	height: 768
+	position: 1.0 -7 0.9
+	direction: 0 1 -0.1
+}
+
+Scene: {
+
+	LightSample: 0
+
+	Light: {
+		position: 1.0 0.5 3.08
+		color: 255 255 255
+		size: 1.0
+	}
+	Light: {
+		position: 1.0 0.5 3.08
+		color: 255 255 255
+		size: 1.0
+	}
+
+
+	Object: {
+		file: "dragon.obj"
+		rotation: 90 0 0
+		scale: 3.0
+		position: 0.2 0 1.4
+		material: {
+			color: 128 128 128
+		}
+	}
+	// Sphere: {
+	// 	radius: 0.5
+	// 	position: 1.6 0 1
+	// 	material: {
+	// 		color: 255 255 255
+	// 		refraction: 1
+	// 		rindex: 1.7
+	// 		ambient: 0
+	// 		diffusion: 0
+	// 	}
+	// }
+
+
+	Plane: {
+		name: "Ground"
+		normal: 0 0 1
+		offset: 0
+		material: {
+			reflection: 0.3
+			ambient: 0
+			texture: {
+				name: "floor.bmp"
+				offsetX: 0
+				offsetY: 0
+				scaleX: 10	
+				scaleY: 20			
+			}
+		}
+	}
+	Plane: {
+		normal: 0 -1 0
+		offset: 3
+		material: {
+			color: 128 128 255
+		}
+	}
+
+
+
+}

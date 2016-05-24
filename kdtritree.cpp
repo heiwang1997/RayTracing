@@ -1,5 +1,5 @@
 #include "kdtritree.h"
-#define DIVISION_USE_SAH
+//#define DIVISION_USE_SAH
 
 // Constant for surface-area-heuristic Algorithm.
 static const double SAH_TRAVERSE_COST = 0.3f;
@@ -124,7 +124,7 @@ void KDTriTree::divideNode(KDTriNode *node, int depth) {
             node->right->data[rc ++] = node->data[i];
     }
     printf("Left Size = %d, Right Size = %d, Depth = %d, Best Plane = %lf, Axis = %d\n",
-           best_left_size, best_right_size, depth, best_plane);
+           best_left_size, best_right_size, depth, best_plane, split_axis);
     divideNode(node->left, depth - 1);
     divideNode(node->right, depth - 1);
 
@@ -209,6 +209,17 @@ Collision KDTriTree::traverseNode(KDTriNode *node, const Ray &c_ray, double max_
         return result;
     }
 
+    if (node->left && node->left->aabb.inside(c_ray.source)) {
+        Collision col = traverseNode(node->left, c_ray, max_dist);
+        if (col.collide()) return col;
+        return traverseNode(node->right, c_ray, max_dist);
+    }
+    if (node->right && node->right->aabb.inside(c_ray.source)) {
+        Collision col = traverseNode(node->right, c_ray, max_dist);
+        if (col.collide()) return col;
+        return traverseNode(node->left, c_ray, max_dist);
+    }
+
     Collision lc, rc;
     if (node->left) lc = node->left->aabb.updateCollision(c_ray, max_dist);
     if (node->right) rc = node->right->aabb.updateCollision(c_ray, max_dist);
@@ -254,11 +265,11 @@ void TriBoundingBox::dump() const {
 Collision TriBoundingBox::updateCollision(const Ray &c_ray, double max_dist) {
     // if inside, dist = -1, so that a test will sure be made.
     Collision result;
-    if (inside(c_ray.source)) {
-        result.hit_type = Collision::INSIDE;
-        result.distance = -1; // TODO: Maybe not robust
-        return result;
-    }
+    //if (inside(c_ray.source)) {
+    //    result.hit_type = Collision::INSIDE;
+    //    result.distance = -1; // TODO: Maybe not robust
+    //    return result;
+    //}
     double near[3];
     double far[3];
     for (int i = 0; i < 3; ++ i) {

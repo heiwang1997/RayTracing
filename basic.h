@@ -27,6 +27,7 @@ public:
     double operator* (const Vector3&) const;
     Vector3 operator* (double) const;
     double& operator[] (int);
+    Vector3 operator += (const Vector3&);
     double getAttr(int) const;
     friend Vector3 operator* (double, Vector3);
     // operator = and copy construction uses default.

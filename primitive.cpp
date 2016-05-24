@@ -3,6 +3,7 @@
 #include "default.h"
 #include <cmath>
 #include <cstdlib>
+#include <list>
 
 ImgLoader* Texture::imgLoader = 0;
 
@@ -237,9 +238,13 @@ Collision Triangle::updateCollision(const Ray &ray, double max_dist) {
     // Hit the triangle:
     Collision result;
     result.distance = t;
-    result.normal = normal;
+//    result.normal = normal;
+    result.normal = (vertex_normal[k] * (1 - gamma - beta) +
+                    vertex_normal[ku] * beta +
+                    vertex_normal[kv] * gamma).getNormal();
+
     result.pos = O + t * D; // Smooth Shading's position should be modified.
-    if (D * normal > 0) {
+    if (D * result.normal > 0) {
         result.hit_type = Collision::INSIDE;
         result.normal = - normal;
     } else {
@@ -252,10 +257,12 @@ void Triangle::updateAccelerator() {
     Vector3 c = vertex[1] - vertex[0];
     Vector3 b = vertex[2] - vertex[0];
     normal = c.cross( b );
-    if (fabs( normal.x ) > fabs( normal.y ))
-        if (fabs( normal.x ) > fabs( normal.z )) acc.k = 0; else acc.k = 2;
-    else
-        if (fabs( normal.y ) > fabs( normal.z )) acc.k = 1; else acc.k = 2;
+    area = 0.5 * normal.getLength();
+//    if (fabs( normal.x ) > fabs( normal.y ))
+//        if (fabs( normal.x ) > fabs( normal.z )) acc.k = 0; else acc.k = 2;
+//    else
+//        if (fabs( normal.y ) > fabs( normal.z )) acc.k = 1; else acc.k = 2;
+    acc.k = 0;
     int u = (acc.k + 1) % 3;
     int v = (acc.k + 2) % 3;
     // precomp
@@ -308,6 +315,7 @@ void Object::loadMeshFile(const std::string &file_name) {
     char buf[256];
     std::vector<Vector3> vecVertices;
     std::vector<Triangle*> vecTriangles;
+    std::vector<std::list<std::pair<int, int> > > vertex_face;
 
     int lineNumber = 0;
 
@@ -325,6 +333,7 @@ void Object::loadMeshFile(const std::string &file_name) {
                             rotate(Vector3(0, 1, 0), rotation.getAttr(1)).
                             rotate(Vector3(0, 0, 1), rotation.getAttr(2)) * scale + pos;
                     vecVertices.push_back(vP);
+                    vertex_face.push_back(std::list<std::pair<int, int> >());
                 }
                 else {
                     printf("Error while parsing vertex at Line %d\n", lineNumber);
@@ -339,15 +348,16 @@ void Object::loadMeshFile(const std::string &file_name) {
         case 'f': {
             switch (buf[1]) {
                 case '\0': {
-                    int f1, f2, f3;
-                    if (fscanf_s(fp, "%d %d %d", &f1, &f2, &f3) == 3) {
+                    int f[3];
+                    if (fscanf_s(fp, "%d %d %d", f, f + 1, f + 2) == 3) {
                         Triangle* new_tri = new Triangle;
-                        new_tri->vertex[0] = vecVertices[f1 - 1];
-                        new_tri->vertex[1] = vecVertices[f2 - 1];
-                        new_tri->vertex[2] = vecVertices[f3 - 1];
-                        new_tri->updateAccelerator();
                         vecTriangles.push_back(new_tri);
                         new_tri->index = vecTriangles.size();
+                        for (int i = 0; i < 3; ++ i) {
+                            new_tri->vertex[i] = vecVertices[f[i] - 1];
+                            vertex_face[f[i] - 1].push_back(std::make_pair(new_tri->index - 1, i));
+                        }
+                        new_tri->updateAccelerator();
                     }
                     else {
                         printf("Error parsing faces at Line %d\n", lineNumber);
@@ -365,6 +375,23 @@ void Object::loadMeshFile(const std::string &file_name) {
         }
     }
     fclose(fp);
+
+    printf("Merging normals, %d Faces and %d Vertices.\n", vecTriangles.size(), vecVertices.size());
+    // Merge Phong Soften. Weight by Area.
+    for (unsigned int i = 0; i < vecVertices.size(); ++ i) {
+        Vector3 soft_normal(0, 0, 0);
+        double total_area = 0;
+        for (std::list<std::pair<int, int> >::iterator it = vertex_face[i].begin();
+             it != vertex_face[i].end(); ++ it) {
+            total_area += vecTriangles[(*it).first]->area;
+            soft_normal += vecTriangles[(*it).first]->area * vecTriangles[(*it).first]->normal;
+        }
+        soft_normal = (soft_normal * (1.0f / total_area)).getNormal();
+        for (std::list<std::pair<int, int> >::iterator it = vertex_face[i].begin();
+             it != vertex_face[i].end(); ++ it) {
+            vecTriangles[(*it).first]->vertex_normal[(*it).second] = soft_normal;
+        }
+    }
     triangle_tree->buildTree(vecTriangles);
 }
 

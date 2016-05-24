@@ -115,6 +115,14 @@ Vector3::Vector3(const Color& col) {
     x = col.r; y = col.g; z = col.b;
 }
 
+Vector3 Vector3::operator+=(const Vector3 &rv) {
+    x += rv.x;
+    y += rv.y;
+    z += rv.z;
+    return *this;
+}
+
+
 void Color::dump() const {
     printf("Color( R=%lf, G=%lf, B=%lf )\n", r, g, b);
 }

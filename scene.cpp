@@ -8,6 +8,7 @@ Scene::Scene() {
     light_sample = DEFAULT_SCENE_LIGHT_SAMPLE;
     diffuse_reflection_sample = DEFAULT_SCENE_DIFFUSE_REFLECTION_SAMPLE;
     soft_shadow = DEFAULT_SCENE_SOFT_SHADOW;
+    depth_of_field_sample = DEFAULT_SCENE_DOF_QUALITY;
 }
 
 Scene::~Scene() {
@@ -86,6 +87,14 @@ void Scene::loadAttr(FILE *fp) {
             diffuse_reflection_sample = getAttrInt(fp);
             continue;
         }
+        if (attr == "SOFTSHADOW") {
+            soft_shadow = (bool) getAttrInt(fp);
+            continue;
+        }
+        if (attr == "DEPTHOFFIELDSAMPLE") {
+            depth_of_field_sample = getAttrInt(fp);
+            continue;
+        }
     }
 }
 
@@ -117,8 +126,8 @@ bool Scene::getSoftShadow() const {
     return soft_shadow;
 }
 
-
-
-
+int Scene::getDOFSample() const {
+    return depth_of_field_sample;
+}
 
 

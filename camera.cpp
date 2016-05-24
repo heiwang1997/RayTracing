@@ -9,14 +9,14 @@ Ray Camera::emit(double sx, double sy) {
 }
 
 Ray Camera::emitDOF(const Ray& ori_ray) {
-    Vector3 focal_point = ori_ray.source + ori_ray.direction * 3; // focal distance
+    Vector3 focal_point = ori_ray.source + ori_ray.direction * focal_distance; // focal distance
     Vector3 image_point = ori_ray.source + ori_ray.direction;
     double offx, offy;
     do {
         offx = random01() * 2 - 1;
         offy = random01() * 2 - 1;
     } while (offx * offx + offy * offy > 1);
-    Vector3 dof_emit_point = image_point + dx * offx * 0.1 + dy * offy * 0.1;
+    Vector3 dof_emit_point = image_point + dx * offx * aperture + dy * offy * aperture;
     return Ray(dof_emit_point, focal_point - dof_emit_point);
 }
 
@@ -31,6 +31,8 @@ Camera::Camera() {
     dy = dir.cross(dx).getNormal();
     dx = dx.rotate(dir, DEFAULT_CAMERA_ROTATE);
     dy = dy.rotate(dir, DEFAULT_CAMERA_ROTATE);
+    focal_distance = DEFAULT_CAMERA_FOCAL_DISTANCE;
+    aperture = DEFAULT_CAMERA_APERTURE;
 }
 
 
@@ -59,6 +61,8 @@ void Camera::loadAttr(FILE *fp) {
         else if (attr == "DIRECTION") world_position.direction.loadAttr(fp);
         else if (attr == "HEIGHT") img_h = getAttrInt(fp);
         else if (attr == "WIDTH") img_w = getAttrInt(fp);
+        else if (attr == "FOCALDISTANCE") focal_distance = getAttrDouble(fp);
+        else if (attr == "APERTURE") aperture = getAttrDouble(fp);
     }
 }
 

@@ -136,6 +136,8 @@ class Triangle : public Primitive
         Vector3 max_pos, min_pos;
     } acc;
     Vector3 vertex[3];
+    Vector3 vertex_normal[3];
+    double area;
     Vector3 normal;
     void updateAccelerator();
 public:

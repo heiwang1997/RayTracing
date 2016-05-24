@@ -11,14 +11,17 @@ static double DEFAULT_CAMERA_WINDOW_H = 0.8f;
 static double DEFAULT_CAMERA_ROTATE = 0.0f;
 static Ray DEFAULT_CAMERA_WORLD_POSITION = \
        Ray(Vector3(1.0, -3, 0.7), Vector3(0, 0.5, 0));
+static double DEFAULT_CAMERA_FOCAL_DISTANCE = 2.7f;
+static double DEFAULT_CAMERA_APERTURE = 0.1f;
 
 /**************************************
  *            SCENE DEFAULTS          *
  **************************************/
-static Color DEFAULT_SCENE_BACKGROUND_COLOR = Color(3, 3, 3);
+static Color DEFAULT_SCENE_BACKGROUND_COLOR = Color(0, 0, 0);
 static int DEFAULT_SCENE_LIGHT_SAMPLE = 4;
 static int DEFAULT_SCENE_DIFFUSE_REFLECTION_SAMPLE = 64;
-static bool DEFAULT_SCENE_SOFT_SHADOW = false;
+static bool DEFAULT_SCENE_SOFT_SHADOW = true;
+static int DEFAULT_SCENE_DOF_QUALITY = 0;
 /**************************************
  *         MATERIAL DEFAULTS          *
  **************************************/

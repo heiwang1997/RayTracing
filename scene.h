@@ -30,6 +30,7 @@ class Scene
     bool soft_shadow;
     int light_sample;
     int diffuse_reflection_sample;
+    int depth_of_field_sample;
 public:
     PrimitiveCollision getNearestPrimitiveCollision(const Ray&, double);
     LightCollision getNearestLightCollision(const Ray&, double);
@@ -39,6 +40,7 @@ public:
     Color getBackgroundColor() const;
     int getLightSample() const;
     int getDiffuseReflectionSample() const;
+    int getDOFSample() const;
     bool getSoftShadow() const;
     void loadAttr(FILE*);
     Scene();

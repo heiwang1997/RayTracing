@@ -19,6 +19,9 @@ private:
 
     Vector3 dx;
     Vector3 dy;
+
+    double focal_distance;
+    double aperture;
 public:
     int getImgW() const;
     int getImgH() const;

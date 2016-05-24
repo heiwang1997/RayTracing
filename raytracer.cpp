@@ -2,6 +2,8 @@
 #include "camera.h"
 #include "scene.h"
 #include <cmath>
+#include <thread>
+#include <mutex>
 
 #include <iostream>
 
@@ -13,6 +15,8 @@ static const int DIFFUSE_REFLECTION_DEPTH = 1;
 static const int SUPER_SAMPLING_QUALITY = 3;
 static const double IMPORTANCE_SAMPLING_INDEX = 0.25f;
 static const double RAYTRACE_MAX_DISTANCE = INF;
+static const int SHADOW_HASH = 199738;
+static const int MAX_THREAD = 4;
 
 RayTracer::RayTracer() : img(0) {
     camera = new Camera;
@@ -50,6 +54,10 @@ Camera *RayTracer::getCamera() const {
     return camera;
 }
 
+void rayTraceSampling(bool* completed_row) {
+    
+}
+
 void RayTracer::run() {
     if (!img) return;
     int H = camera->getImgH();
@@ -62,22 +70,25 @@ void RayTracer::run() {
             dsx = cx; dsy = cy;
             Ray current_ray = camera->emit((double) cx, (double) cy);
             primitive_table[cy][cx] = 0;
-            img->cache(cx, cy, traceRay(current_ray, MAX_RAYTRACE_DEPTH,
-                                        primitive_table[cy][cx], scene->getLightSample()));
-            if (false) {
-                int dof_sample = 255;
+
+            int dof_sample = scene->getDOFSample();
+            if (dof_sample == 0) {
+                img->cache(cx, cy, traceRay(current_ray, MAX_RAYTRACE_DEPTH,
+                                            primitive_table[cy][cx], scene->getLightSample(), 0));
+            } else {
                 Color dof_final;
                 double dof_weight = 1.0f / dof_sample;
                 int dummy_dof;
                 for (int i = 0; i < dof_sample; ++ i) {
                     dof_final += traceRay(camera->emitDOF(current_ray), MAX_RAYTRACE_DEPTH,
-                                          dummy_dof, scene->getLightSample()) * dof_weight;
+                                          dummy_dof, scene->getLightSample(), 0) * dof_weight;
                 }
                 img->cache(cx, cy, dof_final);
             }
 
         }
     }
+    // DOF NOT DO.
     int dummy_hash = 0;
     for (int cy = 0; cy < H; ++cy) {
         for (int cx = 0; cx < W; ++cx) {
@@ -93,7 +104,7 @@ void RayTracer::run() {
                            ty = cy + j / (double)SUPER_SAMPLING_QUALITY;
                     Ray current_ray = camera->emit(tx, ty);
                     new_color += traceRay(current_ray, MAX_RAYTRACE_DEPTH,
-                                          dummy_hash, scene->getLightSample()) * q_index;
+                                          dummy_hash, scene->getLightSample(), 0) * q_index;
                 }
             img->cache(cx, cy, new_color);
         }
@@ -104,12 +115,16 @@ void RayTracer::run() {
 }
 
 Color RayTracer::getBasicPhongColor(Primitive *prim, const Collision& c_col,
-                                    const Vector3& N, const Vector3& V, int shade_sample) {
+                                    const Vector3& N, const Vector3& V, int shade_sample, int& hash) {
     Color result_color;
     for (int light_id = 0; light_id < scene->getLightsNumber(); ++ light_id) {
         Light* light = scene->getLightById(light_id);
         double shade = 1.0f;
-        if (scene->getLightSample() != 0) shade = getShadow(light, shade_sample, c_col.pos);
+        if (scene->getLightSample() != 0) {
+            shade = getShadow(light, shade_sample, c_col.pos + V * DOZ);
+            if (shade < 1.0f - DOZ && !scene->getSoftShadow())
+                hash = (hash + SHADOW_HASH) % HASH_MOD;
+        }
         Vector3 L = (light->getPos() - c_col.pos).getNormal();
         if (prim->material.getDiffuse() > DOZ && (N * L) > DOZ) {
             result_color += (N * L * prim->material.getDiffuse()) *
@@ -156,6 +171,7 @@ double RayTracer::getShadow(Light *light, int sample, const Vector3& cpos) {
 Color RayTracer::getReflectionColor(Primitive* prim, int depth,
                                     const Vector3& R, const Collision& col,
                                     int& hash, int shade_sample) {
+    if (col.hit_type == Collision::INSIDE) return Color();
     Color ref_col;
     if (prim->material.getDiffuseReflection() > DOZ &&
         scene->getDiffuseReflectionSample() != 0 &&
@@ -173,10 +189,10 @@ Color RayTracer::getReflectionColor(Primitive* prim, int depth,
             Vector3 RF = R + offx * RN1 + offy * RN2;
             int dum_hash = 0;
             ref_col += traceRay(Ray(col.pos + RF * DOZ, RF), depth - 1,
-                                dum_hash, int(shade_sample * IMPORTANCE_SAMPLING_INDEX)) * r_weight;
+                                dum_hash, int(shade_sample * IMPORTANCE_SAMPLING_INDEX), prim) * r_weight;
         }
     } else
-        ref_col = traceRay(Ray(col.pos + R * DOZ, R), depth - 1, hash, shade_sample);
+        ref_col = traceRay(Ray(col.pos + R * DOZ, R), depth - 1, hash, shade_sample, prim);
 
     return prim->material.getReflection() * ref_col *
               prim->getColor(col.pos);
@@ -189,25 +205,26 @@ Color RayTracer::getRefractionColor(Primitive* prim, const Vector3& N, const Vec
     if (col.hit_type == Collision::OUTSIDE)
         rindex = 1.0f / rindex;
     double cosI = -N * L, cosT2 = 1 - ( rindex * rindex ) * ( 1 - cosI * cosI );
+    Vector3 P;
     if ( cosT2 > DOZ ) {
-        Vector3 P = L * rindex + N * ( rindex * cosI - sqrt(cosT2));
-        Color refract_col = traceRay(Ray(col.pos + P * DOZ, P), depth - 1, hash, shade_sample) *
+        P = L * rindex + N * ( rindex * cosI - sqrt(cosT2));
+        Color refract_col = traceRay(Ray(col.pos + P * DOZ, P), depth - 1, hash, shade_sample, prim) *
                             prim->material.getRefraction();
         if (col.hit_type == Collision::OUTSIDE)
             result += refract_col;
         else {
             Vector3 absorbance = Vector3(prim->material.getAbsorbance()) *
-                                 prim->material.getDensity() * (-col.distance);
+                                    prim->material.getDensity() * (-col.distance);
             Color transparency = Color(exp(absorbance.x / 255) * 255,
-                                       exp(absorbance.y / 255) * 255,
-                                       exp(absorbance.z / 255) * 255);
+                                        exp(absorbance.y / 255) * 255,
+                                        exp(absorbance.z / 255) * 255);
             result += refract_col * transparency;
         }
-    }
+    }    
     return result;
 }
 
-Color RayTracer::traceRay(const Ray &current_ray, int depth, int& hash, int shade_sample) {
+Color RayTracer::traceRay(const Ray &current_ray, int depth, int& hash, int shade_sample, Primitive*) {
     if (depth == 0)
         return scene->getBackgroundColor();
 
@@ -230,7 +247,7 @@ Color RayTracer::traceRay(const Ray &current_ray, int depth, int& hash, int shad
         Vector3 L = current_ray.direction.getNormal();
         Vector3 R = L - 2.0f * (L * N) * N; R = R.getNormal();
 
-        result += getBasicPhongColor(collide_primitive, p_collision, N, -L, shade_sample);
+        result += getBasicPhongColor(collide_primitive, p_collision, N, -L, shade_sample, hash);
         if (collide_primitive->material.getReflection() > DOZ) {
             result += getReflectionColor(collide_primitive, depth, R, p_collision, hash, shade_sample);
         }

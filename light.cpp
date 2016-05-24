@@ -36,6 +36,7 @@ Vector3 Light::getPos() const {
 Collision Light::updateCollision(const Ray &c_ray, double max_dist) {
     Collision result;
     result.distance = (pos.z - c_ray.source.z) / c_ray.direction.z;
+    result.hit_type = Collision::OUTSIDE;
     if (result.distance > DOZ && result.distance < max_dist) {
         Vector3 collision_point = c_ray.source + result.distance * c_ray.direction;
         if (collision_point.x > pos.x - size / 2 && collision_point.x < pos.x + size / 2 &&
