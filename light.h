@@ -13,6 +13,7 @@ public:
     Collision updateCollision(const Ray&, double max_dist);
     Vector3 getPos(int, int, int) const;
     Vector3 getPos() const;
+    Ray getPhotonRay() const;
     Color getColor() const;
     int getHashCode() const;
     Light(const Vector3 &t_pos);

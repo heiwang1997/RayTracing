@@ -1,6 +1,6 @@
+#include <cmath>
 #include "scene.h"
 #include "default.h"
-#include "primitive.h"
 #include "light.h"
 
 Scene::Scene() {
@@ -9,6 +9,7 @@ Scene::Scene() {
     diffuse_reflection_sample = DEFAULT_SCENE_DIFFUSE_REFLECTION_SAMPLE;
     soft_shadow = DEFAULT_SCENE_SOFT_SHADOW;
     depth_of_field_sample = DEFAULT_SCENE_DOF_QUALITY;
+    env_tex = 0;
 }
 
 Scene::~Scene() {
@@ -17,6 +18,12 @@ Scene::~Scene() {
         delete (*it);
     }
     m_primitives.clear();
+    for (std::vector<Light*>::iterator it = m_lights.begin();
+         it != m_lights.end(); ++ it) {
+        delete (*it);
+    }
+    m_lights.clear();
+    if (env_tex) delete env_tex;
 }
 
 PrimitiveCollision Scene::getNearestPrimitiveCollision(const Ray &m_ray, double max_dist) {
@@ -25,10 +32,9 @@ PrimitiveCollision Scene::getNearestPrimitiveCollision(const Ray &m_ray, double 
     for (std::vector<Primitive*>::iterator it = m_primitives.begin();
          it != m_primitives.end(); ++ it) {
         // updateCollision must be passed with a normalized ray.
-        Collision pcol = (*it)->updateCollision(t_ray, max_dist);
-        if (pcol.collide() && (!result.collide() || result.collision.distance > pcol.distance)) {
-            result.primitive = (*it);
-            result.collision = pcol;
+        PrimitiveCollision pcol = (*it)->updateCollision(t_ray, max_dist);
+        if (pcol.collide() && (!result.collide() || result.collision.distance > pcol.collision.distance)) {
+            result = pcol;
         }
     }
     return result;
@@ -54,6 +60,11 @@ void Scene::loadAttr(FILE *fp) {
     while (true) {
         attr = getAttrName(fp);
         if (attr == "END") break;
+        if (attr == "ENVIRONMENTMAP") {
+            env_tex = new Texture();
+            env_tex->loadAttr(fp);
+            continue;
+        }
         if (attr == "LIGHT") {
             Light* lt = new Light(Vector3());
             lt->loadAttr(fp);
@@ -73,10 +84,12 @@ void Scene::loadAttr(FILE *fp) {
             continue;
         }
         if (attr == "OBJECT") {
-            Object* obj = new Object();
-            obj->loadAttr(fp);
-            printf("LoadFinish!\n");
-            m_primitives.push_back(obj);
+            std::vector<Object*> obj_prims;
+            obj_prims = Object::loadObjAttr(fp);
+            for (std::vector<Object*>::iterator it = obj_prims.begin();
+                    it != obj_prims.end(); ++ it) {
+                m_primitives.push_back(*it);
+            }
             continue;
         }
         if (attr == "LIGHTSAMPLE") {
@@ -130,4 +143,16 @@ int Scene::getDOFSample() const {
     return depth_of_field_sample;
 }
 
-
+Color Scene::getEnvironmentTexture(const Vector3 &dir) const {
+    if (env_tex == 0) return getBackgroundColor();
+    Vector3 VP = dir.getNormal();
+    double phi = acos(VP.getAttr(2));
+    double v = phi * (1.0f / PI);
+    double theta = acos(VP.getAttr(0) / sin(phi)) * (0.5f / PI);
+    double u;
+    if (VP.getAttr(1) >= 0)
+        u = (1.0f - theta);
+    else
+        u = theta;
+    return env_tex->getColor(u, v);
+}

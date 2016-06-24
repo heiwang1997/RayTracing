@@ -36,11 +36,11 @@ public:
 
 class KDTriTree {
     KDTriNode* root;
-    Collision traverseNode(KDTriNode*, const Ray&, double max_dist);
+    PrimitiveCollision traverseNode(KDTriNode*, const Ray&, double max_dist);
 public:
     void buildTree(const std::vector<Triangle*>& tri_data);
     void divideNode(KDTriNode*, int);
-    Collision updateCollision(const Ray&, double max_dist);
+    PrimitiveCollision updateCollision(const Ray&, double max_dist);
     KDTriTree();
     ~KDTriTree();
 };

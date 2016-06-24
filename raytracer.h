@@ -10,11 +10,16 @@ class Camera;
 class Scene;
 class ImgWriter;
 class Primitive;
+class PhotonTracer;
+class PhotonMap;
 
 class RayTracer {
     Camera* camera;
     Scene* scene;
     ImgWriter* img;
+    bool indirect_illumination;
+    PhotonTracer* tracer;
+    PhotonMap* photonMap;
     Color getBasicPhongColor(Primitive*, const Collision&,
                              const Vector3&, const Vector3&,
                              int shade_sample, int& hash);
@@ -31,7 +36,8 @@ public:
     void run();
     void setImgWriter(ImgWriter*);
     void setImgLoader(ImgLoader*);
-    Camera * getCamera() const;
+    void setIndirectIllumination(bool on) { indirect_illumination = on; }
+    Camera* getCamera() const;
     RayTracer();
 
     ~RayTracer();

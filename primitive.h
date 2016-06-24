@@ -3,6 +3,7 @@
 #include "basic.h"
 #include "image.h"
 #include <string>
+#include <vector>
 
 struct Collision
 {
@@ -13,6 +14,19 @@ struct Collision
     Collision() { hit_type = MISS; }
     bool collide() const { return (hit_type != MISS); }
     ~Collision() {}
+};
+
+class Primitive;
+
+struct PrimitiveCollision {
+    Collision collision;
+    Primitive* primitive;
+    bool collide() const { return collision.collide(); }
+    PrimitiveCollision() { primitive = 0; }
+    PrimitiveCollision(const Collision& col, Primitive* prim) {
+        collision = col;
+        primitive = prim;
+    }
 };
 
 class Texture
@@ -28,6 +42,8 @@ public:
     double getOffsetY() const;
     double getScaleX() const;
     double getScaleY() const;
+    int getTexW() const { return tex_w; }
+    int getTexH() const { return tex_h; }
 
     void loadAttr(FILE*);
     void loadFile(const char*);
@@ -51,7 +67,8 @@ class Material
     Color origin_color;
     Color absorbance;
     Texture* texture;
-
+    Texture* bump;
+    friend class ObjLoader;
 public:
 
     double getDiffuseReflection() const;
@@ -67,6 +84,7 @@ public:
     Color getAbsorbance() const;
     Color getColor() const;
     Texture* getTexture() const;
+    Texture* getBump() const;
     void loadAttr(FILE*);
     Material();
     ~Material();
@@ -80,9 +98,10 @@ public:
     Material material;
     virtual Color getColor(const Vector3&) const;
     virtual Vector3 getTextureUV(const Vector3&) const = 0;
-    virtual Collision updateCollision(const Ray&, double) = 0;
+    virtual PrimitiveCollision updateCollision(const Ray&, double) = 0;
     virtual void loadAttr(FILE*) = 0;
-    int getHashCode() const;
+    virtual int getHashCode() const;
+    virtual int getPMComparer() const { return getHashCode(); }
     Primitive();
     virtual ~Primitive();
 };
@@ -91,13 +110,16 @@ class Sphere : public Primitive
 {
 protected:
     Vector3 pos; // position of the center.
+    Vector3 VN;
+    Vector3 VE;
+    Vector3 VC;
     double radius;
     std::string m_name;
 public:
 
     virtual Vector3 getTextureUV(const Vector3 &vector3) const;
 
-    virtual Collision updateCollision(const Ray&, double);
+    virtual PrimitiveCollision updateCollision(const Ray&, double);
     void loadAttr(FILE*);
     std::string getName() const { return m_name; }
 
@@ -118,7 +140,7 @@ public:
 
     virtual Vector3 getTextureUV(const Vector3 &vector3) const;
 
-    virtual Collision updateCollision(const Ray &ray, double);
+    virtual PrimitiveCollision updateCollision(const Ray &ray, double);
     void loadAttr(FILE*);
     std::string getName() const { return m_name; }
 
@@ -128,6 +150,9 @@ public:
 
 class Triangle : public Primitive
 {
+
+    friend class Object;
+    friend class ObjLoader;
     struct AccInfo {
         int k;
         double nu, nv, nd;
@@ -137,21 +162,25 @@ class Triangle : public Primitive
     } acc;
     Vector3 vertex[3];
     Vector3 vertex_normal[3];
+    Vector3 uv_pos[3];
+    Vector3 tX, tY;
     double area;
     Vector3 normal;
+    int pm_hcode;
+    Object* parent;
     void updateAccelerator();
+    void updateTexMatrix();
+    Vector3 getBump(double beta, double gamma, const Vector3& normal);
 public:
     int index;
-
-    friend class Object;
-    virtual Collision updateCollision(const Ray &ray, double);
+    virtual PrimitiveCollision updateCollision(const Ray &ray, double);
     virtual void loadAttr(FILE*) {}
-
+    virtual int getHashCode() const;
     virtual Vector3 getTextureUV(const Vector3 &vector3) const;
-
+    int getPMComparer() { return pm_hcode; }
     double getMaxPos(int idx) const { return acc.max_pos.getAttr(idx); }
     double getMinPos(int idx) const { return acc.min_pos.getAttr(idx); }
-    Triangle() { }
+    Triangle() { parent = 0; pm_hcode = 0; }
     ~Triangle() {}
 };
 
@@ -159,14 +188,12 @@ class KDTriTree;
 
 class Object : public Primitive
 {
+    friend class ObjLoader;
     KDTriTree* triangle_tree;
-    void loadMeshFile(const std::string&);
-    double scale;
-    Vector3 rotation;
-    Vector3 pos;
 public:
-    virtual Collision updateCollision(const Ray &ray, double);
+    virtual PrimitiveCollision updateCollision(const Ray &ray, double);
     virtual void loadAttr(FILE *fp);
+    static std::vector<Object*> loadObjAttr(FILE *fp);
 
     virtual Vector3 getTextureUV(const Vector3 &vector3) const;
 

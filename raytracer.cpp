@@ -1,6 +1,7 @@
 #include "raytracer.h"
 #include "camera.h"
 #include "scene.h"
+#include "photontracer.h"
 #include <cmath>
 #include <thread>
 #include <mutex>
@@ -10,9 +11,7 @@
 using namespace std;
 
 static const int MAX_RAYTRACE_DEPTH = 20;
-static const int HASH_MOD = 100007; // for super sampling
 static const int DIFFUSE_REFLECTION_DEPTH = 1;
-static const int SUPER_SAMPLING_QUALITY = 3;
 static const double IMPORTANCE_SAMPLING_INDEX = 0.25f;
 static const double RAYTRACE_MAX_DISTANCE = INF;
 static const int SHADOW_HASH = 199738;
@@ -21,6 +20,8 @@ static const int MAX_THREAD = 4;
 RayTracer::RayTracer() : img(0) {
     camera = new Camera;
     scene = new Scene;
+    tracer = 0;
+    indirect_illumination = false;
 }
 
 void RayTracer::setImgWriter(ImgWriter *imgWriter) {
@@ -54,12 +55,20 @@ Camera *RayTracer::getCamera() const {
     return camera;
 }
 
-void rayTraceSampling(bool* completed_row) {
-    
-}
-
 void RayTracer::run() {
     if (!img) return;
+
+    if (indirect_illumination) {
+        tracer = new PhotonTracer;
+        tracer->setScene(scene);
+        tracer->setMaxPhotons(50000);
+        tracer->run();
+        photonMap = tracer->getPhotonMap();
+        photonMap->balance();
+        photonMap->setNearestPhotonSize(100);
+    }
+
+
     int H = camera->getImgH();
     int W = camera->getImgW();
     int** primitive_table = new int*[H];
@@ -88,7 +97,7 @@ void RayTracer::run() {
 
         }
     }
-    // DOF NOT DO.
+
     int dummy_hash = 0;
     for (int cy = 0; cy < H; ++cy) {
         for (int cx = 0; cx < W; ++cx) {
@@ -112,15 +121,19 @@ void RayTracer::run() {
     for (int i = 0; i < H; ++ i)
         delete[] primitive_table[i];
     delete[] primitive_table;
+
+    if (tracer) delete tracer;
+    tracer = 0;
 }
 
 Color RayTracer::getBasicPhongColor(Primitive *prim, const Collision& c_col,
                                     const Vector3& N, const Vector3& V, int shade_sample, int& hash) {
     Color result_color;
+    Color primitive_color = prim->getColor(c_col.pos);
     for (int light_id = 0; light_id < scene->getLightsNumber(); ++ light_id) {
         Light* light = scene->getLightById(light_id);
         double shade = 1.0f;
-        if (scene->getLightSample() != 0) {
+        if (scene->getLightSample() != 0 && !indirect_illumination) {
             shade = getShadow(light, shade_sample, c_col.pos + V * DOZ);
             if (shade < 1.0f - DOZ && !scene->getSoftShadow())
                 hash = (hash + SHADOW_HASH) % HASH_MOD;
@@ -128,7 +141,7 @@ Color RayTracer::getBasicPhongColor(Primitive *prim, const Collision& c_col,
         Vector3 L = (light->getPos() - c_col.pos).getNormal();
         if (prim->material.getDiffuse() > DOZ && (N * L) > DOZ) {
             result_color += (N * L * prim->material.getDiffuse()) *
-                    light->getColor() * prim->getColor(c_col.pos);
+                    light->getColor() * primitive_color;
         }
         if (prim->material.getSpecular() > DOZ) {
             Vector3 H = (L + V).getNormal();
@@ -139,8 +152,12 @@ Color RayTracer::getBasicPhongColor(Primitive *prim, const Collision& c_col,
                         light->getColor();
             }
         }
-        result_color += prim->getColor(c_col.pos) * prim->material.getAmbient();
+        result_color += primitive_color * prim->material.getAmbient();
         result_color = result_color * shade;
+    }
+    if (indirect_illumination) {
+        result_color += primitive_color.scale(photonMap->getIrradiance(c_col.pos, c_col.normal, 3.0f))
+                        * prim->material.getDiffuse();
     }
     return result_color;
 }
@@ -213,14 +230,17 @@ Color RayTracer::getRefractionColor(Primitive* prim, const Vector3& N, const Vec
         if (col.hit_type == Collision::OUTSIDE)
             result += refract_col;
         else {
-            Vector3 absorbance = Vector3(prim->material.getAbsorbance()) *
+            Vector3 absorbance = Vector3(prim->material.getAbsorbance(), false) *
                                     prim->material.getDensity() * (-col.distance);
             Color transparency = Color(exp(absorbance.x / 255) * 255,
                                         exp(absorbance.y / 255) * 255,
                                         exp(absorbance.z / 255) * 255);
             result += refract_col * transparency;
         }
-    }    
+    } else {
+        Vector3 R = L - 2.0f * (L * N) * N; R = R.getNormal();
+        return traceRay(Ray(col.pos + R * DOZ, R), depth - 1, hash, shade_sample, prim);
+    }
     return result;
 }
 
@@ -229,12 +249,15 @@ Color RayTracer::traceRay(const Ray &current_ray, int depth, int& hash, int shad
         return scene->getBackgroundColor();
 
     PrimitiveCollision pcol = scene->getNearestPrimitiveCollision(current_ray, RAYTRACE_MAX_DISTANCE);
-    LightCollision lcol = scene->getNearestLightCollision(current_ray, RAYTRACE_MAX_DISTANCE);
-    if (lcol.collide() && ((pcol.collide() &&
-        lcol.collision.distance < pcol.collision.distance) ||
-        !pcol.collide())) {
-        hash = (hash + lcol.light->getHashCode()) % HASH_MOD;
-        return lcol.light->getColor();
+
+    if (!scene->hasEnvironmentMap()) {
+        LightCollision lcol = scene->getNearestLightCollision(current_ray, RAYTRACE_MAX_DISTANCE);
+        if (lcol.collide() && ((pcol.collide() &&
+                                lcol.collision.distance < pcol.collision.distance) ||
+                               !pcol.collide())) {
+            hash = (hash + lcol.light->getHashCode()) % HASH_MOD;
+            return lcol.light->getColor();
+        }
     }
 
     if (pcol.collide()) {
@@ -260,7 +283,7 @@ Color RayTracer::traceRay(const Ray &current_ray, int depth, int& hash, int shad
         return result;
     }
 
-    return scene->getBackgroundColor();
+    return scene->getEnvironmentTexture(current_ray.direction);
 }
 
 

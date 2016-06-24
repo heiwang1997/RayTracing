@@ -7,13 +7,8 @@
 class Primitive;
 class Light;
 class Ray;
-
-struct PrimitiveCollision {
-    Collision collision;
-    Primitive* primitive;
-    bool collide() const { return collision.collide(); }
-    PrimitiveCollision() { primitive = 0; }
-};
+struct PrimitiveCollision;
+class Texture;
 
 struct LightCollision {
     Collision collision;
@@ -31,6 +26,7 @@ class Scene
     int light_sample;
     int diffuse_reflection_sample;
     int depth_of_field_sample;
+    Texture* env_tex;
 public:
     PrimitiveCollision getNearestPrimitiveCollision(const Ray&, double);
     LightCollision getNearestLightCollision(const Ray&, double);
@@ -38,6 +34,8 @@ public:
     int getLightsNumber() const { return m_lights.size(); }
     Light* getLightById(int idx) const { return m_lights[idx]; }
     Color getBackgroundColor() const;
+    Color getEnvironmentTexture(const Vector3 &dir) const;
+    bool hasEnvironmentMap() const { return (env_tex != 0); }
     int getLightSample() const;
     int getDiffuseReflectionSample() const;
     int getDOFSample() const;

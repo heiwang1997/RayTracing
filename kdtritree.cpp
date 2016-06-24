@@ -129,10 +129,16 @@ void KDTriTree::divideNode(KDTriNode *node, int depth) {
     divideNode(node->right, depth - 1);
 
 #else
-    // TODO: split axis can judge.
+
     if (node == 0 || node->size <= 64 || depth == 0) return;
     // Judge best axis to split.
-    int split_axis = (8 - depth) % 3;
+    double delx = node->aabb.max[0] - node->aabb.min[0],
+           dely = node->aabb.max[1] - node->aabb.min[1],
+           delz = node->aabb.max[2] - node->aabb.min[2];
+
+    int split_axis = 2;
+    if (delx > dely && delx > delz) split_axis = 0;
+    else if (dely > delz) split_axis = 1;
 
     // Judge best plane to split.
     double best_plane = node->aabb.min[split_axis] + node->aabb.getSize(split_axis) / 2;
@@ -187,35 +193,38 @@ void KDTriTree::buildTree(const std::vector<Triangle *> &tri_data) {
         root->data[i ++] = *it;
         root->aabb.updateBox(*it);
     }
-    divideNode(root, 8);
+    divideNode(root, 16);
+    //root->printInfo();
 }
 
-Collision KDTriTree::updateCollision(const Ray &c_ray, double max_dist) {
-    if (root->aabb.updateCollision(c_ray, max_dist).collide())
+PrimitiveCollision KDTriTree::updateCollision(const Ray &c_ray, double max_dist) {
+    if (root->aabb.updateCollision(c_ray, max_dist).collide()) {
         return traverseNode(root, c_ray, max_dist);
-    return Collision();
+    }
+    return PrimitiveCollision();
 }
 
-Collision KDTriTree::traverseNode(KDTriNode *node, const Ray &c_ray, double max_dist) {
-    if (node == 0) return Collision();
+PrimitiveCollision KDTriTree::traverseNode(KDTriNode *node, const Ray &c_ray, double max_dist) {
+    if (node == 0) return PrimitiveCollision();
     if (node->left == 0 && node->right == 0) {
-        Collision result;
+        PrimitiveCollision result;
         for (int i = 0; i < node->size; ++ i) {
-            Collision test = node->data[i]->updateCollision(c_ray, max_dist);
-            if (test.collide() && node->aabb.inside(test.pos) &&
-                (!result.collide() || (result.collide() && test.distance < result.distance)))
+            PrimitiveCollision test = node->data[i]->updateCollision(c_ray, max_dist);
+            if (test.collide() && node->aabb.inside(test.collision.pos) &&
+                (!result.collide() || (result.collide()
+                                       && test.collision.distance < result.collision.distance)))
                 result = test;
         }
         return result;
     }
 
     if (node->left && node->left->aabb.inside(c_ray.source)) {
-        Collision col = traverseNode(node->left, c_ray, max_dist);
+        PrimitiveCollision col = traverseNode(node->left, c_ray, max_dist);
         if (col.collide()) return col;
         return traverseNode(node->right, c_ray, max_dist);
     }
     if (node->right && node->right->aabb.inside(c_ray.source)) {
-        Collision col = traverseNode(node->right, c_ray, max_dist);
+        PrimitiveCollision col = traverseNode(node->right, c_ray, max_dist);
         if (col.collide()) return col;
         return traverseNode(node->left, c_ray, max_dist);
     }
@@ -228,11 +237,11 @@ Collision KDTriTree::traverseNode(KDTriNode *node, const Ray &c_ray, double max_
     if (!rc.collide()) return traverseNode(node->left, c_ray, max_dist);
 
     if (lc.distance < rc.distance) {
-        Collision col = traverseNode(node->left, c_ray, max_dist);
+        PrimitiveCollision col = traverseNode(node->left, c_ray, max_dist);
         if (col.collide()) return col;
         return traverseNode(node->right, c_ray, max_dist);
     } else {
-        Collision col = traverseNode(node->right, c_ray, max_dist);
+        PrimitiveCollision col = traverseNode(node->right, c_ray, max_dist);
         if (col.collide()) return col;
         return traverseNode(node->left, c_ray, max_dist);
     }

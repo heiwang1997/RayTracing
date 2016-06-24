@@ -3,8 +3,8 @@
 #include <cstdlib>
 
 Vector3 Light::getPos(int dx, int dy, int all) const {
-    double px = pos.getAttr(0) - size / 2 + (dx + rand() / (double) RAND_MAX) * size / all;
-    double py = pos.getAttr(1) - size / 2 + (dy + rand() / (double) RAND_MAX) * size / all;
+    double px = pos.getAttr(0) - size / 2 + (dx + random01()) * size / all;
+    double py = pos.getAttr(1) - size / 2 + (dy + random01()) * size / all;
     return Vector3(px, py, pos.getAttr(2));
 }
 
@@ -49,6 +49,17 @@ Collision Light::updateCollision(const Ray &c_ray, double max_dist) {
 int Light::getHashCode() const {
     return hash_code;
 }
+
+Ray Light::getPhotonRay() const {
+    // Emit direction of a DIFFUSE SQUARE LIGHT
+    // first randomly select a direction
+    double px = pos.getAttr(0) - size / 2 + random01() * size;
+    double py = pos.getAttr(1) - size / 2 + random01() * size;
+    Vector3 epos = Vector3(px, py, pos.getAttr(2));
+    return Ray(epos, Vector3(0, 0, -1).getDiffuse());
+}
+
+
 
 
 

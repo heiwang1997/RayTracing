@@ -4,15 +4,18 @@
 /**************************************
  *         CAMERA DEFAULTS            *
  **************************************/
-static int DEFAULT_CAMERA_IMG_W = 800;
-static int DEFAULT_CAMERA_IMG_H = 570;
-static double DEFAULT_CAMERA_WINDOW_W = 1.2f;
-static double DEFAULT_CAMERA_WINDOW_H = 0.8f;
+static int DEFAULT_CAMERA_IMG_W = 1280;
+static int DEFAULT_CAMERA_IMG_H = 720;
+static double DEFAULT_CAMERA_WINDOW_W = 1.6f;
 static double DEFAULT_CAMERA_ROTATE = 0.0f;
 static Ray DEFAULT_CAMERA_WORLD_POSITION = \
        Ray(Vector3(1.0, -3, 0.7), Vector3(0, 0.5, 0));
 static double DEFAULT_CAMERA_FOCAL_DISTANCE = 2.7f;
 static double DEFAULT_CAMERA_APERTURE = 0.1f;
+static int DEFAULT_CAMERA_PHOTONS_EMITTED = 5000000;
+static int DEFAULT_CAMERA_HITPOINTMAP_COEF = 3;
+static double DEFAULT_CAMERA_INITIAL_RADIUS = 0.1f;
+static int DEFAULT_CAMERA_PPM_ITERATIONS = 2;
 
 /**************************************
  *            SCENE DEFAULTS          *
@@ -26,9 +29,9 @@ static int DEFAULT_SCENE_DOF_QUALITY = 0;
  *         MATERIAL DEFAULTS          *
  **************************************/
 static double DEFAULT_MATERIAL_SHINENESS = 10.0f;
-static double DEFAULT_MATERIAL_DIFFUSE = 0.35f;
-static double DEFAULT_MATERIAL_SPECULAR = 0.2f;
-static double DEFAULT_MATERIAL_AMBIENT = 0.08f;
+static double DEFAULT_MATERIAL_DIFFUSE = 0.0f;
+static double DEFAULT_MATERIAL_SPECULAR = 0.0f;
+static double DEFAULT_MATERIAL_AMBIENT = 0.0f;
 static double DEFAULT_MATERIAL_REFLECTION = 0.0f;
 static double DEFAULT_MATERIAL_DEFUSE_REFLECTION = 0.0f;
 static double DEFAULT_MATERIAL_REFRACTION = 0.0f;
