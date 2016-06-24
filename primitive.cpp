@@ -21,6 +21,7 @@ Material::Material() {
     diffuse_reflection = DEFAULT_MATERIAL_DEFUSE_REFLECTION;
     texture = 0;
     bump = 0;
+    soften = false;
 }
 
 double Material::getShineness() const {
@@ -43,6 +44,10 @@ double Material::getSpecular() const {
     return specular;
 }
 
+bool Material::getSoften() const {
+    return soften;
+}
+
 Color Material::getColor() const {
     return origin_color;
 }
@@ -63,6 +68,7 @@ void Material::loadAttr(FILE *fp) {
         else if (attr == "DIFFUSEREFLECTION") diffuse_reflection = getAttrDouble(fp);
         else if (attr == "TEXTURE") { texture = new Texture(); texture->loadAttr(fp); }
         else if (attr == "ABSORBANCE") absorbance.loadAttr(fp);
+        else if (attr == "SOFTEN") soften = (bool)getAttrInt(fp);
     }
 }
 
@@ -122,7 +128,6 @@ Color Texture::getColor(double x, double y) const {
           ld = color_table[ldy][ldx],
           ru = color_table[ruy][rux],
           rd = color_table[rdy][rdx];
-
     return lu * ((1 - ofx) * (1 - ofy)) + ld * ((1 - ofx) * ofy) +
            ru * (ofx * (1 - ofy)) + rd * (ofx * ofy);
 }
@@ -270,10 +275,12 @@ PrimitiveCollision Triangle::updateCollision(const Ray &ray, double max_dist) {
     // Hit the triangle:
     Collision result;
     result.distance = t;
-    //result.normal = normal;
-    result.normal = (vertex_normal[0] * (1 - gamma - beta) +
-                    vertex_normal[1] * beta +
-                    vertex_normal[2] * gamma).getNormal();
+    if (material.getSoften())
+        result.normal = (vertex_normal[0] * (1 - gamma - beta) +
+                        vertex_normal[1] * beta +
+                        vertex_normal[2] * gamma).getNormal();
+    else
+        result.normal = normal;
     if (material.getBump() != 0)
         result.normal = getBump(beta, gamma, result.normal);
 

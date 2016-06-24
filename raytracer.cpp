@@ -34,8 +34,7 @@ void RayTracer::setImgLoader(ImgLoader *p_iml) {
 
 void RayTracer::loadSceneFromFile(const std::string &filename) {
     generateCommentlessFile(filename);
-    FILE* fp;
-    fopen_s(&fp, "temp_RayTracer.txt", "r");
+    FILE* fp = fopen("temp_RayTracer.txt", "r");
     while (true) {
         std::string attr_name = getAttrName(fp);
         if (attr_name == "EOF") break;
@@ -72,9 +71,14 @@ void RayTracer::run() {
     int H = camera->getImgH();
     int W = camera->getImgW();
     int** primitive_table = new int*[H];
-    for (int i = 0; i < H; ++ i)
+    for (int i = 0; i < H; ++ i) {
         primitive_table[i] = new int[W];
+        for (int j = 0; j < W; ++ j) {
+            primitive_table[i][j] = 0;
+        }
+    }
     for (int cy = 0; cy < H; ++cy) {
+        printf("Rendering on Line: %d\n", cy);
         for (int cx = 0; cx < W; ++cx) {
             dsx = cx; dsy = cy;
             Ray current_ray = camera->emit((double) cx, (double) cy);
@@ -97,9 +101,9 @@ void RayTracer::run() {
 
         }
     }
-
     int dummy_hash = 0;
     for (int cy = 0; cy < H; ++cy) {
+        printf("Resampling on Line: %d\n", cy);
         for (int cx = 0; cx < W; ++cx) {
             if ((cx == 0 || primitive_table[cy][cx] == primitive_table[cy][cx - 1]) &&
                 (cy == 0 || primitive_table[cy][cx] == primitive_table[cy - 1][cx]) &&
@@ -237,10 +241,7 @@ Color RayTracer::getRefractionColor(Primitive* prim, const Vector3& N, const Vec
                                         exp(absorbance.z / 255) * 255);
             result += refract_col * transparency;
         }
-    } else {
-        Vector3 R = L - 2.0f * (L * N) * N; R = R.getNormal();
-        return traceRay(Ray(col.pos + R * DOZ, R), depth - 1, hash, shade_sample, prim);
-    }
+    }    
     return result;
 }
 
@@ -269,7 +270,6 @@ Color RayTracer::traceRay(const Ray &current_ray, int depth, int& hash, int shad
         Vector3 N = p_collision.normal.getNormal();
         Vector3 L = current_ray.direction.getNormal();
         Vector3 R = L - 2.0f * (L * N) * N; R = R.getNormal();
-
         result += getBasicPhongColor(collide_primitive, p_collision, N, -L, shade_sample, hash);
         if (collide_primitive->material.getReflection() > DOZ) {
             result += getReflectionColor(collide_primitive, depth, R, p_collision, hash, shade_sample);
@@ -279,7 +279,6 @@ Color RayTracer::traceRay(const Ray &current_ray, int depth, int& hash, int shad
         }
 
         hash = (hash + collide_primitive->getHashCode()) % HASH_MOD;
-
         return result;
     }
 

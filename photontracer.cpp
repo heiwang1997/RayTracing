@@ -113,9 +113,7 @@ void PhotonTracer::runSingleThread(int threadID, int randID) {
         while (light_power > 0) {
             // photons are deleted in photon map.
             Photon photon;
-            //Vector3(this_light->getColor(), true).dump();
             photon.power = Vector3(this_light->getColor(), true) / max_photons;
-            //photon.power.dump();
             tracePhoton(this_light->getPhotonRay(), photon, MAX_PHOTONTRACE_DEPTH);
             light_power -= photon_power;
 

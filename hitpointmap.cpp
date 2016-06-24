@@ -41,30 +41,17 @@ void HitPointMap::renderImage(ImgWriter *img, Camera *camera,
     Vector3** cmap = new Vector3*[H];
     for (int i = 0; i < H; ++ i)
         cmap[i] = new Vector3[W];
-
-    double min_radius = INF;
-    double factor = 0;
-    Vector3 tgt_arf;
+    double min_radius = INF, max_radius = - INF;
     for (int i = 1; i <= size; ++ i) {
         const HitPoint& hp = hit_points[i];
         Vector3 irradiance = (hp.is_light) ? Vector3(1, 1, 1) :
                              (80.0f / (hp.radius2 * iteration)) * hp.arf;
         if (!hp.is_light) {
-            if (sqrt(hp.radius2) < min_radius) {
-                min_radius = sqrt(hp.radius2);
-                if (sqrt(hp.radius2) < DOZ) {
-                    printf("Yes.\n");
-                    printf("SX = %d, SY = %d\n", hp.sx, hp.sy);
-                }
-                factor = (80.0f / (hp.radius2 * iteration));
-                tgt_arf = irradiance;
-            }
+            min_radius = std::min(min_radius, hp.radius2);
+            max_radius = std::max(max_radius, hp.radius2);
         }
         cmap[hp.sy][hp.sx] += irradiance.scale(hp.weight);
     }
-    printf("Min Radius = %lf\n", min_radius);
-    printf("Factor = %lf\n", factor);
-    tgt_arf.dump();
     for (int i = 0; i < H; ++ i)
         for (int j = 0; j < W; ++ j)
             img->cache(j, i, Color(cmap[i][j]));
@@ -72,6 +59,7 @@ void HitPointMap::renderImage(ImgWriter *img, Camera *camera,
         delete[] cmap[i];
     delete[] cmap;
     img->saveToFile(file_name);
+    printf("    - HitPointMap: Max Radius = %lf, Min Radius = %lf\n", max_radius, min_radius);
 }
 
 void HitPointMap::update() {

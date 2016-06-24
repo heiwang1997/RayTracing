@@ -11,6 +11,7 @@ const double INF = 1e30;
 const int HASH_MOD = 100007;
 const int SUPER_SAMPLING_QUALITY = 3;
 const int MAX_THREAD_NUM = 4;
+const int MAX_RAYTRACE_THREAD_NUM = 4;
 int dsx, dsy;
 
 template <class T>

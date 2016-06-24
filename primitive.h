@@ -64,6 +64,7 @@ class Material
     double ambient;
     double density;
     double rindex;
+    bool soften;
     Color origin_color;
     Color absorbance;
     Texture* texture;
@@ -80,6 +81,7 @@ public:
     double getRindex() const;
     double getAmbient() const;
     double getDensity() const;
+    bool getSoften() const;
 
     Color getAbsorbance() const;
     Color getColor() const;
@@ -147,7 +149,7 @@ public:
     Plane(const std::string & t_name, const Vector3 &t_norm, double t_d);
     ~Plane() {}
 };
-
+class Object;
 class Triangle : public Primitive
 {
 

@@ -28,8 +28,7 @@ void PhotonVisualizer::setImgLoader(ImgLoader *p_iml) {
 
 void PhotonVisualizer::loadSceneFromFile(const std::string &filename) {
     generateCommentlessFile(filename);
-    FILE* fp;
-    fopen_s(&fp, "temp_RayTracer.txt", "r");
+    FILE* fp = fopen("temp_RayTracer.txt", "r");
     while (true) {
         std::string attr_name = getAttrName(fp);
         if (attr_name == "EOF") break;
@@ -83,20 +82,20 @@ void PhotonVisualizer::run() {
     //photonMap = tracer->getPhotonMap();
 
     std::vector<std::thread> vec_threads;
-    for (int i = 0; i < MAX_THREAD_NUM; ++ i) {
+    for (int i = 0; i < MAX_RAYTRACE_THREAD_NUM; ++ i) {
         vec_threads.push_back(std::thread(&PhotonVisualizer::singleThreadRowSampling,
             this, i, primitive_table));
     }
-    for (int i = 0; i < MAX_THREAD_NUM; ++ i) {
+    for (int i = 0; i < MAX_RAYTRACE_THREAD_NUM; ++ i) {
         vec_threads[i].join();
     }
 
     std::vector<std::thread> vec_resample_threads;
-    for (int i = 0; i < MAX_THREAD_NUM; ++ i) {
+    for (int i = 0; i < MAX_RAYTRACE_THREAD_NUM; ++ i) {
         vec_resample_threads.push_back(std::thread(&PhotonVisualizer::singleThreadRowResampling,
             this, i, primitive_table));
     }
-    for (int i = 0; i < MAX_THREAD_NUM; ++ i) {
+    for (int i = 0; i < MAX_RAYTRACE_THREAD_NUM; ++ i) {
         vec_resample_threads[i].join();
     }
 
@@ -247,7 +246,9 @@ void PhotonVisualizer::traceRay(const Ray &current_ray, int depth,
 }
 
 void PhotonVisualizer::singleThreadRowSampling(int base, int** primitive_table) {
-    for (int cy = base; cy < camera->getImgH(); cy += MAX_THREAD_NUM) {
+    if (base == 0)
+        printf("    - Pass 1: Sampling\n");
+    for (int cy = base; cy < camera->getImgH(); cy += MAX_RAYTRACE_THREAD_NUM) {
         for (int cx = 0; cx < camera->getImgW(); ++cx) {
             Ray current_ray = camera->emit((double) cx, (double) cy);
             HitPoint hit_point(cx, cy, 1);
@@ -257,10 +258,13 @@ void PhotonVisualizer::singleThreadRowSampling(int base, int** primitive_table) 
 }
 
 void PhotonVisualizer::singleThreadRowResampling(int base, int** primitive_table) {
+    if (base == 0)
+        printf("    - Pass 2: Antialiasing\n");
+
     int dummy_hash = 0;
     int W = camera->getImgW();
     int H = camera->getImgH();
-    for (int cy = base; cy < H; cy += MAX_THREAD_NUM) {
+    for (int cy = base; cy < H; cy += MAX_RAYTRACE_THREAD_NUM) {
         for (int cx = 0; cx < W; ++cx) {
             if ((cx == 0 || primitive_table[cy][cx] == primitive_table[cy][cx - 1]) &&
                 (cy == 0 || primitive_table[cy][cx] == primitive_table[cy - 1][cx]) &&

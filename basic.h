@@ -9,6 +9,7 @@ extern int dsx;
 extern int dsy;
 extern const int HASH_MOD;
 extern const int SUPER_SAMPLING_QUALITY;
+extern const int MAX_RAYTRACE_THREAD_NUM;
 extern const int MAX_THREAD_NUM;
 
 std::string getAttrName(FILE*);
