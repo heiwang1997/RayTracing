@@ -238,12 +238,10 @@ _Pvt_Extensions
 .idea/
 bin/
 Debug/
-CMakeLists.txt
 *.props
 *.vcxproj
 *.filters
 *.txt
 *.obj
-*.bmp
 *.jpg
 *.scn
