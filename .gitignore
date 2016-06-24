@@ -242,3 +242,8 @@ CMakeLists.txt
 *.props
 *.vcxproj
 *.filters
+*.txt
+*.obj
+*.bmp
+*.jpg
+*.scn
